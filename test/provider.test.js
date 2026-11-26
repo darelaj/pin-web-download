@@ -8,10 +8,9 @@ export const pin = { id: '123456789', title: 'A quiet morning', description: 'Pe
 const response = (body, statusCode = 200, headers = {}) => Object.assign(Readable.from([Buffer.from(body)]), { statusCode, headers });
 test('explicit Pinterest domains and strict canonical identity', () => {
   for (const host of ['pinterest.com', 'www.pinterest.co.uk', 'id.pinterest.com']) {
-    if (host.startsWith('id.')) assert.throws(() => pinInput(`https://${host}/pin/123/`));
-    else assert.equal(pinInput(`https://${host}/pin/123/?utm_source=test`).id, '123');
+    assert.equal(pinInput(`https://${host}/pin/123/?utm_source=test`).id, '123');
   }
-  for (const url of ['http://pinterest.com/pin/1/', 'https://pinterest.com.evil.test/pin/1/', 'https://pinterest.com@evil.test/pin/1/', 'https://pinterest.com:444/pin/1/', 'https://pinterest.com/pin/1/#x', 'https://pinterest.com/pin/../1/', 'https://pin.it/abc?url=x', 'https://127.0.0.1/pin/1/', 'https://pinterest.com\\@evil.test/pin/1/']) assert.throws(() => pinInput(url), url);
+  for (const url of ['http://pinterest.com/pin/1/', 'https://pinterest.com.evil.test/pin/1/', 'https://unlisted.pinterest.com/pin/1/', 'https://pinterest.com@evil.test/pin/1/', 'https://pinterest.com:444/pin/1/', 'https://pinterest.com/pin/1/#x', 'https://pinterest.com/pin/../1/', 'https://pin.it/abc?url=x', 'https://127.0.0.1/pin/1/', 'https://pinterest.com\\@evil.test/pin/1/']) assert.throws(() => pinInput(url), url);
 });
 test('short links follow only validated bounded HEAD redirects', async () => {
   let calls = 0;

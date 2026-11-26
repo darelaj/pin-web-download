@@ -1,6 +1,7 @@
 import { fail } from './errors.js';
 const roots = ['pinterest.com', 'pinterest.co.uk', 'pinterest.ca', 'pinterest.com.au', 'pinterest.de', 'pinterest.fr', 'pinterest.es', 'pinterest.it', 'pinterest.jp', 'pinterest.co.kr', 'pinterest.com.mx', 'pinterest.com.br', 'pinterest.pt', 'pinterest.at', 'pinterest.ch', 'pinterest.nl', 'pinterest.se', 'pinterest.dk', 'pinterest.no', 'pinterest.fi', 'pinterest.ie', 'pinterest.nz', 'pinterest.co.in', 'pinterest.ph', 'pinterest.cl', 'pinterest.ru'];
-export const PIN_HOSTS = new Set(roots.flatMap(h => [h, `www.${h}`, `m.${h}`]));
+const localeHosts = ['au', 'br', 'ca', 'cl', 'co', 'de', 'dk', 'es', 'fi', 'fr', 'hu', 'id', 'in', 'it', 'jp', 'kr', 'mx', 'nl', 'nz', 'ph', 'pl', 'pt', 'ro', 'ru', 'se', 'sk', 'tr', 'uk', 'vn', 'za'].map(locale => `${locale}.pinterest.com`);
+export const PIN_HOSTS = new Set([...roots.flatMap(h => [h, `www.${h}`, `m.${h}`]), ...localeHosts]);
 export const LINK_HOSTS = new Set([...PIN_HOSTS, 'pin.it']);
 export const MEDIA_HOSTS = new Set(['v.pinimg.com']);
 export function safeURL(value, hosts) {

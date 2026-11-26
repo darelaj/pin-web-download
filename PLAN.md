@@ -37,3 +37,4 @@ Objective: a minimal responsive Pinterest video downloader with an authorized of
 - GitHub connector access verified, but exposed APIs cannot upload exact root/author/committer objects. Local Git authentication is absent. Do not recreate/rewrite tested history. Preserve bundle and finish via authenticated atomic push per README.
 - Remote remains empty. No merge, force push, deployment, public preview, paid service, Hostinger/VPS/Coolify action or RuteX modification occurred.
 - Live acceptance awaits documented platform approval, eligible official direct-video access and a user-owned explicitly permitted sample. HLS remains unsupported.
+- Final compatibility check added explicit common Pinterest locale subdomains (including id.pinterest.com and in.pinterest.com) alongside country domains. Wildcard/unlisted subdomains remain rejected. npm test: 19 passed. No live network probe was made.

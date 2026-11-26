@@ -1,0 +1,14 @@
+.git
+.github
+node_modules
+.env
+.env.*
+!.env.example
+artifacts
+test-results
+coverage
+*.log
+scripts
+PLAN.md
+QA.md
+AGENTS.md

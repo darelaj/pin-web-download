@@ -1,0 +1,53 @@
+name: Verify only (no deployment)
+on:
+  push:
+    branches: [develop]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: verify-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  container:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Run integration and security suite inside the nonroot image
+        run: docker build --target test -t pinfold-test .
+      - name: Build production image
+        run: docker build -t pinfold .
+      - name: Check safe production entry point
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --detach --name pinfold --read-only --cap-drop ALL --security-opt no-new-privileges -p 127.0.0.1:3000:3000 pinfold
+          trap 'docker rm -f pinfold' EXIT
+          for attempt in {1..30}; do
+            if curl -fsS http://127.0.0.1:3000/healthz > /tmp/health.json; then break; fi
+            sleep 1
+          done
+          python3 -c 'import json; assert json.load(open("/tmp/health.json")) == {"status":"ok","provider":"disabled"}'
+          curl -fsS http://127.0.0.1:3000/ | grep -q 'download-form'
+          curl -fsS http://127.0.0.1:3000/app.js > /dev/null
+          curl -fsS http://127.0.0.1:3000/app.css > /dev/null
+          test "$(curl -s -o /tmp/error.json -w '%{http_code}' -H 'Content-Type: application/json' -d '{"url":"https://pinterest.com/pin/1/","permission":true}' http://127.0.0.1:3000/api/metadata)" = 503
+          test "$(docker exec pinfold id -u)" != 0
+      - name: Verify responsive browser interaction with local fixtures
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci --ignore-scripts
+          python3 -m pip install playwright
+          python3 -m playwright install --with-deps chromium
+          node scripts/fixture-server.mjs &
+          fixture_pid=$!
+          trap 'kill "$fixture_pid"' EXIT
+          for attempt in {1..20}; do
+            if curl -fsS http://127.0.0.1:3100/healthz > /dev/null; then break; fi
+            sleep 1
+          done
+          python3 scripts/browser-qa.py

@@ -21,3 +21,5 @@ Objective: a minimal responsive Pinterest video downloader with an authorized of
 - Empty repository verified with git ls-remote and clone. Minimal README seed committed on main; develop created.
 - Scaffold verified: Node 24.22.3; npm test (1 passed); entry point syntax checked.
 - Provider increment verified: npm test, 7 passed. Strict URL/short redirects, public-only DNS classification (including mapped IPv6 rejection), documented metadata identity, disabled-provider gate and declared/actual API body limits covered. Official schema reviewed at api-description v5.32.0; no live Pin requests made.
+- HTTP/security increment verified: npm test, 14 passed. Real loopback HTTP metadata/preview/download payloads, opaque expiry, permission/default gate, spoof-resistant rate limiting, concurrent saturation, deadline, MIME/redirect/declared/streamed byte limits and MP4 signature tested. No live Pinterest media accessed.
+- Local git push failed before execution: no HTTPS username/credential helper. Exact-history connector fallback will be evaluated after final review.

@@ -3,7 +3,6 @@ from pathlib import Path
 from playwright.sync_api import sync_playwright, expect
 import json
 import os
-import time
 import re
 Path('artifacts').mkdir(exist_ok=True)
 with sync_playwright() as p:
@@ -32,6 +31,12 @@ with sync_playwright() as p:
    page.wait_for_timeout(50)
   assert page.locator('#preview').evaluate('(v) => v.readyState') >= 1, page.locator('#preview-status').inner_text()
   assert page.locator('#preview').evaluate('(v) => v.videoWidth')==320
+  page.locator('#preview').evaluate('(v) => v.play()')
+  for attempt in range(50):
+   if page.locator('#preview').evaluate('(v) => v.currentTime') > 0: break
+   page.wait_for_timeout(50)
+  assert page.locator('#preview').evaluate('(v) => v.currentTime') > 0
+  page.locator('#preview').evaluate('(v) => v.pause()')
   with page.expect_download() as download_info:
    page.locator('#download').click()
   download=download_info.value

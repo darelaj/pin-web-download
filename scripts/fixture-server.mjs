@@ -4,7 +4,7 @@ import { officialProvider } from '../src/provider.js';
 import { Readable } from 'node:stream';
 import { readFile } from 'node:fs/promises';
 const bytes = await readFile(new URL('../test/fixtures/sample.mp4', import.meta.url));
-const response = (body, statusCode, headers) => Object.assign(Readable.from([body]), { statusCode, headers });
+const response = (body, statusCode, headers) => Object.assign(Readable.from([Buffer.from(body)]), { statusCode, headers });
 const request = async (value, options) => {
   const u = new URL(value);
   if (u.hostname === 'pin.it') return response('', 302, { location: 'https://www.pinterest.com/pin/1/' });

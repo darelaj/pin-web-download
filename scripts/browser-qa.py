@@ -1,10 +1,13 @@
 """Run against scripts/fixture-server.mjs on loopback. Requires Python Playwright + Chromium."""
 from pathlib import Path
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import sync_playwright, expect
 import json
+import os
+import time
+import re
 Path('artifacts').mkdir(exist_ok=True)
 with sync_playwright() as p:
- browser=p.chromium.launch(headless=True, args=['--no-sandbox'])
+ browser=p.chromium.launch(headless=True, executable_path=os.environ.get('BROWSER_EXECUTABLE_PATH'), args=['--no-sandbox'])
  context=browser.new_context(accept_downloads=True, reduced_motion='reduce')
  page=context.new_page()
  errors=[]
@@ -24,7 +27,10 @@ with sync_playwright() as p:
   assert page.locator('#result-title script').count()==0
   assert page.locator('#format option').count()==1
   page.locator('#load-preview').click()
-  page.wait_for_function('document.querySelector("#preview").readyState >= 1')
+  for attempt in range(100):
+   if page.locator('#preview').evaluate('(v) => v.readyState') >= 1: break
+   page.wait_for_timeout(50)
+  assert page.locator('#preview').evaluate('(v) => v.readyState') >= 1, page.locator('#preview-status').inner_text()
   assert page.locator('#preview').evaluate('(v) => v.videoWidth')==320
   with page.expect_download() as download_info:
    page.locator('#download').click()
@@ -37,7 +43,7 @@ with sync_playwright() as p:
  for pin,error in [('2','does not contain'),('3','only HLS'),('4','unavailable')]:
   page.locator('#pin-url').fill(f'https://www.pinterest.com/pin/{pin}/')
   page.locator('#submit').click()
-  page.wait_for_function('document.querySelector("#status").classList.contains("error")')
+  expect(page.locator('#status')).to_have_class(re.compile(r'error'))
   assert error in page.locator('#status').inner_text()
   assert not page.locator('#result').is_visible()
  page.locator('#pin-url').fill('https://www.pinterest.com/pin/5/')

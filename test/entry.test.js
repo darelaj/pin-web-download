@@ -1,0 +1,21 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { spawn } from 'node:child_process';
+import net from 'node:net';
+import { once } from 'node:events';
+test('actual production entry point serves safe defaults and shuts down on SIGTERM', async t => {
+  const probe = net.createServer(); probe.listen(0, '127.0.0.1'); await once(probe, 'listening');
+  const port = probe.address().port; await new Promise(r => probe.close(r));
+  const child = spawn(process.execPath, ['src/index.js'], { cwd: new URL('..', import.meta.url), env: { PATH: process.env.PATH, PORT: String(port), PINTEREST_PLATFORM_AUTHORIZED: 'false' }, stdio: ['ignore', 'pipe', 'pipe'] });
+  t.after(() => { if (child.exitCode === null) child.kill('SIGKILL'); });
+  let output = ''; child.stdout.on('data', chunk => { output += chunk; });
+  let stderr = ''; child.stderr.on('data', chunk => { stderr += chunk; });
+  await Promise.race([once(child.stdout, 'data'), new Promise((_, reject) => { const timer = setTimeout(() => reject(new Error('entry did not start')), 3000); timer.unref(); })]);
+  const base = `http://127.0.0.1:${port}`;
+  assert.deepEqual(await (await fetch(base + '/healthz')).json(), { status: 'ok', provider: 'disabled' });
+  assert.match(await (await fetch(base)).text(), /download-form/);
+  const res = await fetch(base + '/api/metadata', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ url: 'https://pinterest.com/pin/1/', permission: true }) });
+  assert.equal(res.status, 503); assert.deepEqual(await res.json(), { error: 'provider_disabled' });
+  assert.equal(output.includes('https://'), false); assert.equal(stderr, '');
+  child.kill('SIGTERM'); const [code] = await once(child, 'exit'); assert.equal(code, 0);
+});

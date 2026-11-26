@@ -51,3 +51,25 @@ test('bounded API bodies reject declared and actual excess', async () => {
   await assert.rejects(collect(response('x', 200, { 'content-length': '100' }), 4), /upstream_limit/);
   await assert.rejects(collect(response('12345'), 4), /upstream_limit/);
 });
+test('transport pins a checked IP and retains TLS hostname without proxy or pooling', async () => {
+  const { EventEmitter } = await import('node:events');
+  const { createPinnedRequest } = await import('../src/network.js');
+  let lookups = 0;
+  const request = createPinnedRequest({
+    resolver: async () => { lookups++; return [{ address: '8.8.8.8', family: 4 }]; },
+    connect: (url, options, callback) => {
+      assert.equal(url.hostname, 'v.pinimg.com'); assert.equal(options.servername, 'v.pinimg.com'); assert.equal(options.agent, false);
+      options.lookup('v.pinimg.com', {}, (_err, address, family) => { assert.equal(address, '8.8.8.8'); assert.equal(family, 4); });
+      options.lookup('v.pinimg.com', { all: true }, (_err, records) => assert.deepEqual(records, [{ address: '8.8.8.8', family: 4 }]));
+      const req = new EventEmitter(); req.end = () => callback(response('')); return req;
+    },
+  });
+  const res = await request('https://v.pinimg.com/test.mp4', { hosts: new Set(['v.pinimg.com']) }); res.destroy();
+  assert.equal(lookups, 1); assert.equal(isPublic('3fff::1'), false);
+});
+test('mixed media mapping includes every documented direct native item without synthetic formats', () => {
+  const result = mapPin({ id: pin.id, media: { media_type: 'multiple_mixed', items: [{ item_type: 'image' }, { item_type: 'video', video_url: pin.media.video_url, width: null, height: null }, { item_type: 'video', video_url: 'https://v.pinimg.com/second.mp4', width: 640, height: 360 }] } }, pin.id);
+  assert.equal(result.variants.length, 2); assert.equal(result.variants[0].height, null); assert.equal(result.variants[1].height, 360);
+  assert.throws(() => pinInput('https://pinterest.com/x/../pin/1/'));
+  assert.throws(() => pinInput('https://pinterest.com/x/%2e%2e/pin/1/'));
+});

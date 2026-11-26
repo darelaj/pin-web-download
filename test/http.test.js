@@ -55,7 +55,7 @@ test('streaming byte cap and MP4 signature reject unsafe bodies', async t => {
     await assert.rejects(async () => { const r = await fetch(base + result.formats[0].download); await r.arrayBuffer(); });
   }
 });
-test('deadline, concurrency and client disconnect abort upstream', async t => {
+test('deadline and concurrency abort upstream', async t => {
   let aborted = false;
   const provider = { enabled: true, getPin: (_url, signal) => new Promise((_, reject) => signal.addEventListener('abort', () => { aborted = true; reject(signal.reason); }, { once: true })) };
   const { metadata } = await setup(t, { provider, limits: { deadlineMs: 50, concurrent: 1 } });
@@ -74,4 +74,17 @@ test('entry page and assets are served with offline CSP and native controls', as
   assert.equal(page.status, 200); assert.match(html, /<form id="download-form">/); assert.match(html, /<video id="preview" controls/);
   assert.match(page.headers.get('content-security-policy'), /media-src 'self'/);
   for (const asset of ['/app.css', '/app.js']) { const r = await fetch(base + asset); assert.equal(r.status, 200); assert.ok((await r.text()).length > 100); }
+});
+test('client disconnect aborts upstream work and releases concurrency', async t => {
+  const http = await import('node:http');
+  let started; const ready = new Promise(r => { started = r; });
+  let aborted; const stopped = new Promise(r => { aborted = r; });
+  const provider = { enabled: true, getPin: (_url, signal) => new Promise((_, reject) => {
+    started(); signal.addEventListener('abort', () => { aborted(); reject(signal.reason); }, { once: true });
+  }) };
+  const { base } = await setup(t, { provider, limits: { deadlineMs: 1000 } });
+  const req = http.request(base + '/api/metadata', { method: 'POST', headers: { 'content-type': 'application/json' } });
+  req.on('error', () => {}); req.end(JSON.stringify({ url: 'https://pinterest.com/pin/1/', permission: true }));
+  await ready; req.destroy();
+  await Promise.race([stopped, new Promise((_, reject) => { const timer = setTimeout(() => reject(new Error('disconnect did not abort')), 500); timer.unref(); })]);
 });

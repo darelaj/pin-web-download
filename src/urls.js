@@ -10,6 +10,7 @@ export function safeURL(value, hosts) {
   return u;
 }
 export function pinInput(value) {
+  if (typeof value === 'string' && /(?:\/|%2f|%5c)(?:\.|%2e){1,2}(?:\/|%2f|%5c)/i.test(value)) fail('invalid_url');
   const u = safeURL(value, LINK_HOSTS);
   if (u.hostname === 'pin.it') {
     if (!/^\/[a-zA-Z0-9]{1,64}\/?$/.test(u.pathname) || u.search) fail('invalid_url');

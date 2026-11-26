@@ -7,6 +7,7 @@ import { officialProvider } from './provider.js';
 import { pinnedRequest } from './network.js';
 import { pinInput } from './urls.js';
 import { openMedia, streamMedia } from './media.js';
+import { fetchThumbnail } from './thumbnail.js';
 const staticFiles = new Map([['/', ['index.html', 'text/html; charset=utf-8']], ['/app.css', ['app.css', 'text/css; charset=utf-8']], ['/app.js', ['app.js', 'text/javascript; charset=utf-8']]]);
 const securityHeaders = {
   'Content-Security-Policy': "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; media-src 'self'; img-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'",
@@ -22,7 +23,7 @@ async function bodyJSON(req) {
   try { return JSON.parse(Buffer.concat(chunks)); } catch { fail('invalid_request'); }
 }
 export function createApp({ provider = officialProvider(), request = pinnedRequest, now = Date.now, limits = {}, trustedProxyIPs = [], log = record => console.log(JSON.stringify(record)) } = {}) {
-  const config = { maxBytes: 100 * 1024 * 1024, deadlineMs: 30_000, ticketMs: 300_000, ticketCap: 500, rate: 30, windowMs: 60_000, clientCap: 1000, concurrent: 8, perClient: 2, ...limits };
+  const config = { thumbnailBytes: 2 * 1024 * 1024, maxBytes: 100 * 1024 * 1024, deadlineMs: 30_000, ticketMs: 300_000, ticketCap: 500, rate: 30, windowMs: 60_000, clientCap: 1000, concurrent: 8, perClient: 2, ...limits };
   const tickets = new Map(); const clients = new Map(); let active = 0; const controllers = new Set();
   const prune = () => { const t = now(); for (const [key, v] of tickets) if (v.expires <= t) tickets.delete(key); for (const [key, v] of clients) if (v.reset <= t && v.active === 0) clients.delete(key); };
   const server = http.createServer({ maxHeaderSize: 16384, requestTimeout: 15_000, headersTimeout: 10_000 }, async (req, res) => {
@@ -70,14 +71,20 @@ export function createApp({ provider = officialProvider(), request = pinnedReque
           if (tickets.size >= config.ticketCap) fail('busy', 503);
           const ticket = randomBytes(32).toString('base64url');
           tickets.set(ticket, { ...variant, id: result.id, expires: now() + config.ticketMs });
-          formats.push({ label: `${variant.width && variant.height ? `${variant.width} × ${variant.height}` : 'Original dimensions'} · MP4${result.variants.length > 1 ? ` · Video ${variant.item}` : ''}`, preview: `/api/preview/${ticket}`, download: `/api/download/${ticket}` });
+          formats.push({ label: `${variant.width && variant.height ? `${variant.width} × ${variant.height}` : 'Original dimensions'} · MP4${result.variants.length > 1 ? ` · Video ${variant.item}` : ''}`, preview: `/api/preview/${ticket}`, download: `/api/download/${ticket}`, thumbnail: variant.thumbnailUrl ? `/api/thumbnail/${ticket}` : null });
         }
         return json(res, 200, { id: result.id, title: result.title, description: result.description, expiresIn: config.ticketMs / 1000, formats });
       }
-      const match = /^\/api\/(preview|download)\/([A-Za-z0-9_-]{43})$/.exec(path);
+      const match = /^\/api\/(preview|download|thumbnail)\/([A-Za-z0-9_-]{43})$/.exec(path);
       if (req.method === 'GET' && match) {
         const ticket = tickets.get(match[2]);
         if (!ticket || ticket.expires <= now()) fail('ticket_expired', 410);
+        if (match[1] === 'thumbnail') {
+          if (!ticket.thumbnailUrl) fail('thumbnail_unavailable', 404);
+          const { bytes, type } = await fetchThumbnail(ticket.thumbnailUrl, request, controller.signal, config.thumbnailBytes);
+          res.writeHead(200, { 'Content-Type': type, 'Content-Length': bytes.length, 'Content-Disposition': 'inline' });
+          res.end(bytes); return;
+        }
         const media = await openMedia(ticket.url, request, controller.signal, config.maxBytes);
         res.setHeader('Content-Type', 'video/mp4');
         res.setHeader('Content-Disposition', `${match[1] === 'download' ? 'attachment' : 'inline'}; filename="pinterest-${ticket.id}.mp4"`);

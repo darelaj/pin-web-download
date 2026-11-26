@@ -88,3 +88,37 @@ test('client disconnect aborts upstream work and releases concurrency', async t 
   await ready; req.destroy();
   await Promise.race([stopped, new Promise((_, reject) => { const timer = setTimeout(() => reject(new Error('disconnect did not abort')), 500); timer.unref(); })]);
 });
+test('same-origin thumbnail capability serves exact image bytes and expires without leaking CDN URLs', async t => {
+  const { readFile } = await import('node:fs/promises');
+  const image = await readFile(new URL('./fixtures/poster.png', import.meta.url));
+  let now = 0;
+  const dataPin = { ...pin, media: { ...pin.media, cover_image_url: 'https://i.pinimg.com/fixture.png' } };
+  const { base, metadata } = await setup(t, { now: () => now, limits: { ticketMs: 100 }, provider: { enabled: true, getPin: async () => mapPin(dataPin, pin.id) }, request: async value => String(value).includes('i.pinimg.com') ? response(image, { 'content-type': 'image/png' }) : response() });
+  const data = await (await metadata()).json();
+  assert.match(data.formats[0].thumbnail, /^\/api\/thumbnail\/[A-Za-z0-9_-]{43}$/);
+  assert.equal(JSON.stringify(data).includes('pinimg.com'), false);
+  const thumbnail = await fetch(base + data.formats[0].thumbnail);
+  assert.equal(thumbnail.status, 200); assert.equal(thumbnail.headers.get('content-type'), 'image/png');
+  assert.equal(thumbnail.headers.get('cache-control'), 'no-store');
+  assert.deepEqual(Buffer.from(await thumbnail.arrayBuffer()), image);
+  now = 101; assert.equal((await fetch(base + data.formats[0].thumbnail)).status, 410);
+  assert.equal((await fetch(base + '/api/thumbnail?url=https://i.pinimg.com/a.png')).status, 400);
+});
+test('no-thumbnail fallback has no image ticket and SVG image bodies are never served', async t => {
+  const noThumbnail = await setup(t);
+  const noData = await (await noThumbnail.metadata()).json(); assert.equal(noData.formats[0].thumbnail, null);
+  assert.equal((await fetch(noThumbnail.base + noData.formats[0].preview.replace('/preview/', '/thumbnail/'))).status, 404);
+  const dataPin = { ...pin, media: { ...pin.media, cover_image_url: 'https://i.pinimg.com/fixture.png' } };
+  const bad = await setup(t, { provider: { enabled: true, getPin: async () => mapPin(dataPin, pin.id) }, request: async value => String(value).includes('i.pinimg.com') ? response(Buffer.from('<svg/>'), { 'content-type': 'image/svg+xml' }) : response() });
+  const data = await (await bad.metadata()).json();
+  const result = await fetch(bad.base + data.formats[0].thumbnail);
+  assert.equal(result.status, 422); assert.match(result.headers.get('content-type'), /application\/json/);
+  assert.equal((await result.text()).includes('<svg'), false);
+});
+test('private official-board metadata cannot issue public media or thumbnail capabilities', async t => {
+  const { officialProvider } = await import('../src/provider.js');
+  let mediaCalls = 0;
+  const provider = officialProvider({ token: 'fixture-only', platformAuthorized: true, request: async url => response(Buffer.from(JSON.stringify(String(url).includes('/pins/') ? { ...pin, board_id: '2' } : { id: '2', privacy: 'SECRET' })), { 'content-type': 'application/json' }) });
+  const { metadata } = await setup(t, { provider, request: async () => { mediaCalls++; return response(); } });
+  const result = await metadata(); assert.equal(result.status, 403); assert.deepEqual(await result.json(), { error: 'public_access_unverified' }); assert.equal(mediaCalls, 0);
+});

@@ -4,7 +4,7 @@ import { Readable } from 'node:stream';
 import { pinInput, resolvePin, mediaURL } from '../src/urls.js';
 import { isPublic, checkedAddress, collect } from '../src/network.js';
 import { officialProvider, mapPin } from '../src/provider.js';
-export const pin = { id: '123456789', title: 'A quiet morning', description: 'Permission-owned fixture', media: { media_type: 'video', width: 1280, height: 720, video_url: 'https://v.pinimg.com/videos/fixture.mp4' } };
+export const pin = { id: '123456789', board_id: '7654321', title: 'A quiet morning', description: 'Permission-owned fixture', media: { media_type: 'video', width: 1280, height: 720, video_url: 'https://v.pinimg.com/videos/fixture.mp4' } };
 const response = (body, statusCode = 200, headers = {}) => Object.assign(Readable.from([Buffer.from(body)]), { statusCode, headers });
 test('explicit Pinterest domains and strict canonical identity', () => {
   for (const host of ['pinterest.com', 'www.pinterest.co.uk', 'id.pinterest.com']) {
@@ -34,7 +34,9 @@ test('official provider is disabled without both access gates', async () => {
 });
 test('official adapter maps documented schema and never returns token', async () => {
   const provider = officialProvider({ token: 'fixture-only', platformAuthorized: true, request: async (url, opts) => {
-    assert.equal(String(url), 'https://api.pinterest.com/v5/pins/123456789'); assert.equal(opts.headers.Authorization, 'Bearer fixture-only');
+    assert.equal(opts.headers.Authorization, 'Bearer fixture-only');
+    if (String(url).endsWith('/boards/7654321')) return response(JSON.stringify({ id: '7654321', privacy: 'PUBLIC' }), 200, { 'content-type': 'application/json' });
+    assert.equal(String(url), 'https://api.pinterest.com/v5/pins/123456789');
     return response(JSON.stringify(pin), 200, { 'content-type': 'application/json' });
   } });
   const result = await provider.getPin('https://www.pinterest.com/pin/123456789/');

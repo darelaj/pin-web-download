@@ -4,6 +4,7 @@ const localeHosts = ['au', 'br', 'ca', 'cl', 'co', 'de', 'dk', 'es', 'fi', 'fr',
 export const PIN_HOSTS = new Set([...roots.flatMap(h => [h, `www.${h}`, `m.${h}`]), ...localeHosts]);
 export const LINK_HOSTS = new Set([...PIN_HOSTS, 'pin.it']);
 export const MEDIA_HOSTS = new Set(['v.pinimg.com']);
+export const IMAGE_HOSTS = new Set(['i.pinimg.com']);
 export function safeURL(value, hosts) {
   if (typeof value !== 'string' || value.length > 2048 || /[\s\\\u0000-\u001f\u007f]/u.test(value)) fail('invalid_url');
   let u; try { u = new URL(value); } catch { fail('invalid_url'); }
@@ -36,5 +37,11 @@ export async function resolvePin(value, request, signal) {
 export function mediaURL(value) {
   const u = safeURL(value, MEDIA_HOSTS);
   if (!u.pathname.toLowerCase().endsWith('.mp4')) fail('unsupported_media', 422);
+  return u.href;
+}
+
+export function thumbnailURL(value) {
+  const u = safeURL(value, IMAGE_HOSTS);
+  if (!/\.(?:jpe?g|png|webp)$/i.test(u.pathname)) fail('unsupported_thumbnail', 422);
   return u.href;
 }

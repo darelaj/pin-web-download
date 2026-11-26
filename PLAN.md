@@ -32,9 +32,16 @@ Objective: a minimal responsive Pinterest video downloader with an authorized of
 
 ## Completion and remaining gates
 - Implementation, tests, native responsive UI, safe defaults, docs and test-only workflow complete locally.
-- Browser QA passed all four widths with actual playback and exact download bytes. Unit/integration suite: 19 passed. See QA.md for evidence and scope.
+- Browser QA passed all four widths with actual playback and exact download bytes. Unit/integration suite: 28 passed after thumbnail/privacy follow-up. See QA.md for evidence and scope.
 - Workflow host Node version explicitly set to 24; Docker test/build/run remains unexecuted without a runtime. CI cannot start while repository publication is blocked.
 - GitHub connector access verified, but exposed APIs cannot upload exact root/author/committer objects. Local Git authentication is absent. Do not recreate/rewrite tested history. Preserve bundle and finish via authenticated atomic push per README.
 - Remote remains empty. No merge, force push, deployment, public preview, paid service, Hostinger/VPS/Coolify action or RuteX modification occurred.
 - Live acceptance awaits documented platform approval, eligible official direct-video access and a user-owned explicitly permitted sample. HLS remains unsupported.
 - Final compatibility check added explicit common Pinterest locale subdomains (including id.pinterest.com and in.pinterest.com) alongside country domains. Wildcard/unlisted subdomains remain rejected. npm test: 19 passed. No live network probe was made.
+
+
+## Thumbnail and privacy review follow-up
+- Added optional per-format documented cover metadata and same-origin poster capabilities. Separate exact image host i.pinimg.com, 2 MiB body cap, approved JPEG/PNG/WebP MIME+signature validation, no SVG, bounded validated redirects, no arbitrary client image URLs or CDN URL disclosure; missing/unsafe/failed images fall back gracefully.
+- Reviewed official PinBase and Board schemas: Pin has no definitive public flag. Official adapter now requires a numeric board_id and matching official Get Board response with explicit PUBLIC privacy, rejecting missing/unknown/SECRET/PROTECTED, inaccessible boards, ad-only signals and malformed signal types before media/tickets. Added boards:read requirement; extra response bounded to 512 KiB under existing deadlines.
+- Node suite: 28 passed. Chromium responsive form/poster/image-bytes/playback/download flows and privacy/fallback states passed at 1440, 768, 390 and 320 widths. All activity used injected local fixtures. Runtime remains disabled by default; no live calls, remote publication changes or deployments in this follow-up.
+- README/QA updated with operator-only authenticated access, independent permissions, explicit public-only verification and the five-minute privacy snapshot/capability lifetime. Container verification still pending.

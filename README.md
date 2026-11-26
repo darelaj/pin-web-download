@@ -70,22 +70,11 @@ After review and explicit deployment approval only, follow [Coolify's Dockerfile
 
 For browser QA, install Python Playwright and its Chromium browser, start `node scripts/fixture-server.mjs`, then run `python scripts/browser-qa.py` in another terminal. Screenshots are written under ignored `artifacts/`. If using an already installed browser build, set the test-only `BROWSER_EXECUTABLE_PATH` variable to its executable. The checked-in sample is a one-second locally generated VP9-in-MP4 file; no third-party content is included. The test-only GitHub Actions workflow runs container integration, safe default entry-point checks, and fixture browser QA on `develop`; it has read-only repository permission and no deployment step. See [QA.md](QA.md) for actual results and unverified gates.
 
-## Publication without losing local history
+## Review branch and verification
 
-If credentials are unavailable, keep this checkout or its Git bundle. On an authorized machine with GitHub authentication, run:
+Use the published [`develop` branch](https://github.com/darelaj/pin-web-download/tree/develop). GitHub commit metadata differs from the original local bundle, but the individual task boundaries and file trees were preserved. Do not force-push the original bundle refs over the published branches.
 
-```sh
-git bundle verify ../pin-web-download-review.bundle
-# If using the original checkout:
-git push --atomic origin main develop
-# Or restore elsewhere:
-git clone -b develop /path/to/pin-web-download-review.bundle pin-web-download
-git -C pin-web-download remote set-url origin https://github.com/darelaj/pin-web-download.git
-git -C pin-web-download branch main origin/main
-git -C pin-web-download push --atomic origin main develop
-```
-
-Before pushing, confirm the remote is still empty with `git ls-remote`. If it has changed, fetch and review rather than force pushing. Verify the remote refs match local `git rev-parse main develop`. Never merge or deploy as part of publication.
+[GitHub Actions](https://github.com/darelaj/pin-web-download/actions/runs/45834060039) verified Docker image build, running container health, the integration/security suite inside Docker, and responsive Chromium checks with fixtures. This does not verify live Pinterest API access, real codecs, or a Coolify deployment. See [QA.md](QA.md).
 
 ## Sources and compatibility decisions
 

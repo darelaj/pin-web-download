@@ -33,13 +33,13 @@ python scripts/browser-qa.py
 
 Set `BROWSER_EXECUTABLE_PATH` only for the test harness if necessary. For this environment it was `/home/agent/.cache/ms-playwright/chromium_headless_shell-1161/chrome-linux/headless_shell`. Screenshots are in ignored `artifacts/empty-{1440,768,390,320}.png` and `artifacts/success-{1440,768,390,320}.png`, and `artifacts/poster-{1440,768,390,320}.png`. No screenshot or fixture contains real Pinterest content.
 
-## Container verification gate
+## Local container limitation (before GitHub CI)
 
-No `docker`, `podman`, `buildah`, `rootlesskit` or usable daemon socket was available. Only `unshare` was present, which does not provide an OCI build/runtime. No privileged or paid host was provisioned. The Dockerfile was reviewed but **image build/run, nonroot execution inside Docker, Docker health checks and container integration have not run**.
+No `docker`, `podman`, `buildah`, `rootlesskit` or usable daemon socket was available. Only `unshare` was present, which does not provide an OCI build/runtime. No privileged or paid host was provisioned. The Dockerfile was reviewed but image build/run, nonroot execution inside Docker, Docker health checks and container integration did not run in the local codex workspace.
 
-`.github/workflows/verify.yml` provides a public-repository test-only fallback: build test target, run the Node tests inside the nonroot image, build production, run with loopback port/read-only/cap-drop/no-new-privileges, check health/assets/default 503/nonroot UID, then browser fixture QA under Node 24. It has `contents: read`, a ten-minute job bound, no deployment and no secrets. It has not run because publication is blocked.
+`.github/workflows/verify.yml` provides a public-repository test-only fallback: build test target, run the Node tests inside the nonroot image, build production, run with loopback port/read-only/cap-drop/no-new-privileges, check health/assets/default 503/nonroot UID, then browser fixture QA under Node 24. It has `contents: read`, a ten-minute job bound, no deployment and no secrets. It subsequently ran successfully on GitHub, as recorded below.
 
-## Publication gate and exact-history fallback
+## Initial authentication and original-history bundle
 
 `git push --atomic origin main develop` failed before publication with:
 
@@ -47,16 +47,16 @@ No `docker`, `podman`, `buildah`, `rootlesskit` or usable daemon socket was avai
 fatal: could not read Username for 'https://github.com': No such device or address
 ```
 
-`gh auth status` confirmed no logged-in GitHub host. The GitHub connector confirmed the repository is public, empty, default `main`, and the connected account has push permission. Its exposed Git APIs were evaluated: `create_commit` requires an existing parent SHA and does not expose author/committer metadata or raw commit-object upload. It cannot reproduce this local root commit and exact tested commit chain. Recreating commits through the contents API would change history, so no connector mutation was made. No credentials were accessed, printed or embedded.
+`gh auth status` confirmed no logged-in GitHub host. The GitHub connector confirmed the repository is public, empty, default `main`, and the connected account has push permission. Its exposed Git APIs were evaluated: `create_commit` requires an existing parent SHA and does not expose author/committer metadata or raw commit-object upload. It cannot reproduce this local root commit and exact tested commit chain. No connector mutation was made on that initial attempt. No credentials were accessed, printed or embedded.
 
-A final `git ls-remote origin` returned no refs. Neither main nor develop was published; remote head/history verification therefore remains blocked. A Git bundle outside the checkout preserves both exact refs and every commit: `../pin-web-download-review.bundle`. README provides authenticated push and bundle-restore commands. Before using them, recheck the remote is empty; do not force-push if it changed.
+That first `git ls-remote origin` returned no refs, before the GitHub publication described below. A Git bundle outside the checkout preserves both exact refs and every commit: `../pin-web-download-review.bundle`. README provides authenticated push and bundle-restore commands. The repository now has remote refs. Use its published branches; do not push the original bundle refs over them.
 
 ## Live acceptance and operational gates
 
 1. Retain documented Pinterest platform authorization for the intended downloader, short-link resolution and transient metadata use.
 2. Configure an eligible official provider/token with Get Pin scope/access and restricted direct-video fields available; keep credentials server-side.
 3. Provide a user-owned permitted public sample and explicit content-owner permission; test standard/short links and actual returned MP4 variants only after both authorizations are verified.
-4. Complete container CI and authenticated develop publication. Review codec support on target browsers and real upstream CDN response compatibility within the exact allowlist. Unexpected CDN hosts fail closed and require a reviewed code change.
+4. Review codec support on target browsers and real upstream CDN response compatibility within the exact allowlist. Unexpected CDN hosts fail closed and require a reviewed code change.
 5. Deployment needs separate approval. Reverse-proxy authentication, TLS, private upstream networking, bounded limits and redacted capability-path logging must be configured before enabling a shared instance. The app has no account sign-in or distributed quotas.
 
 HLS is intentionally unsupported: bounded allowlisted segment validation and encryption handling have not been established, and no remote FFmpeg networking is used. No transcode, synthetic resolution, third-party embed, cookie or anti-bot bypass exists.
@@ -68,4 +68,11 @@ The reviewed v5.32.0 `Pin`/`PinRead` → `PinBase` response has no definitive pr
 
 Thumbnails use documented video covers (or named top-level video ImageSize entries), exact `i.pinimg.com` allowlisting, the shared checked-public-IP/TLS-pinned transport, at most three validated redirects, 2 MiB declared/streamed byte limits, JPEG/PNG/WebP MIME and magic-byte checks, and opaque same-origin no-store delivery. SVG is rejected. Small images are temporarily bounded in memory for verification; there is no persistent image/media cache. Image fixtures include a locally generated PNG; JPEG/WebP unit checks exercise signatures, not full decoder support. Actual PNG poster decoding/rendering and byte-exact image responses were tested in Chromium at all four widths. Absent thumbnails and rejected SVG responses preserve video preview/download actions.
 
-The operator must keep the enabled instance behind authentication for the intended audience, verify both authorizations independently, and account for five-minute capability validity after a public-board snapshot. No user/operator-supplied privacy flag or undocumented field can bypass verification. This follow-up made no live Pinterest calls, changed no credentials or publication state, and did not run containers. Existing container/live/provider authorization gates remain.
+The operator must keep the enabled instance behind authentication for the intended audience, verify both authorizations independently, and account for five-minute capability validity after a public-board snapshot. No user/operator-supplied privacy flag or undocumented field can bypass verification. This follow-up made no live Pinterest calls, changed no credentials or publication state, and did not run containers. Container validation was completed later on GitHub; the live provider authorization gate remains.
+
+
+## Final repository and container verification
+
+[GitHub Actions](https://github.com/darelaj/pin-web-download/actions/runs/45834060039) passed at application commit `307d9ecf99a246142769b0f07c7838c94084af3b`. The nonroot Docker test target ran the Node suite successfully; the production image built, started with a read-only filesystem and dropped capabilities, and passed the HTTP health, UI assets, disabled-provider, and nonroot UID checks. Chromium fixture browser QA passed in the workflow after the container checks. No live Pinterest video was tested.
+
+The `develop` branch was published using GitHub's repository API. It preserves the individual task boundaries and commit messages, with each GitHub file-tree SHA verified against its local counterpart. GitHub commit IDs differ because the commit metadata differs. No application code was merged to `main`; no deployment ran.

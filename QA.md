@@ -1,0 +1,61 @@
+# QA report
+
+Date: 2026-11-26. Workspace: isolated `pin-web-download` clone. Node: 24.22.3. No live Pinterest Pin or video was accessed. No public preview or deployment was created.
+
+## Executed checks
+
+| Check | Actual result |
+|---|---|
+| `npm test` after final application changes | 19 tests passed; 0 failed, skipped or cancelled |
+| Actual production `node src/index.js` | Child process served health and UI, default provider returned 503, logs contained no URL, SIGTERM exited with code 0 |
+| Official provider and standard/short link fixtures | Canonical ID, documented metadata mapping, bounded HEAD redirects, unavailable/non-video/HLS behavior passed |
+| Metadata → opaque preview/download HTTP flow | MP4 content type/disposition, exact response bytes and no exposed upstream media URL passed |
+| Security boundaries | Explicit URL/CDN allowlists, numeric identity, userinfo/port/protocol/fragment/dot-path rejection, special IPv4/IPv6/mapped/documentation addresses, mixed DNS answers and pinned IP with original TLS hostname passed |
+| Resource limits | API declared/actual body limits, input cap, declared/streamed media cap, MIME/encoding/MP4 signature checks, redirect cap, rate/proxy spoofing, concurrency saturation, request deadline, ticket expiry and disconnect abort passed |
+| Browser desktop 1440 × 1000 | Real form, short-link fixture through official adapter, preview playback/currentTime, attachment bytes, no overflow: passed |
+| Browser tablet 768 × 1024 | Same full flow passed |
+| Browser mobile 390 × 844 and 320 × 740 | Same full flow passed at both widths |
+| Browser UI states | Empty/loading/success/non-video/HLS/unavailable passed; safe literal script-text title, native keyboard focus and zero page errors |
+| Visual review | Desktop empty, mobile empty and mobile success screenshots inspected; decorative emoji replaced with consistent inline SVG |
+| `npm audit --omit=dev` | 0 vulnerabilities at execution time |
+| JS syntax / `git diff --check` | Passed |
+
+The browser suite used Python Playwright with locally installed Chromium headless shell 134.0.6998.35. The system Chromium launcher pointed at a missing binary. The newest Playwright download returned HTTP 403, while `npx playwright@1.51.1 install chromium` succeeded outside the repository. The available build lacked H264 playback, so the local fixture was generated as VP9 inside MP4; actual preview playback then passed. This verifies the application path and a compatible MP4, not all codecs, Safari, iOS or real Pinterest H264 playback. Browser and fixture server must run in the same execution network namespace; CI runs them in the same shell.
+
+Reproduce browser QA:
+
+```sh
+node scripts/fixture-server.mjs
+# In another terminal sharing the same loopback network:
+python scripts/browser-qa.py
+```
+
+Set `BROWSER_EXECUTABLE_PATH` only for the test harness if necessary. For this environment it was `/home/agent/.cache/ms-playwright/chromium_headless_shell-1161/chrome-linux/headless_shell`. Screenshots are in ignored `artifacts/empty-{1440,768,390,320}.png` and `artifacts/success-{1440,768,390,320}.png`. No screenshot or fixture contains real Pinterest content.
+
+## Container verification gate
+
+No `docker`, `podman`, `buildah`, `rootlesskit` or usable daemon socket was available. Only `unshare` was present, which does not provide an OCI build/runtime. No privileged or paid host was provisioned. The Dockerfile was reviewed but **image build/run, nonroot execution inside Docker, Docker health checks and container integration have not run**.
+
+`.github/workflows/verify.yml` provides a public-repository test-only fallback: build test target, run the Node tests inside the nonroot image, build production, run with loopback port/read-only/cap-drop/no-new-privileges, check health/assets/default 503/nonroot UID, then browser fixture QA under Node 24. It has `contents: read`, a ten-minute job bound, no deployment and no secrets. It has not run because publication is blocked.
+
+## Publication gate and exact-history fallback
+
+`git push --atomic origin main develop` failed before publication with:
+
+```text
+fatal: could not read Username for 'https://github.com': No such device or address
+```
+
+`gh auth status` confirmed no logged-in GitHub host. The GitHub connector confirmed the repository is public, empty, default `main`, and the connected account has push permission. Its exposed Git APIs were evaluated: `create_commit` requires an existing parent SHA and does not expose author/committer metadata or raw commit-object upload. It cannot reproduce this local root commit and exact tested commit chain. Recreating commits through the contents API would change history, so no connector mutation was made. No credentials were accessed, printed or embedded.
+
+A final `git ls-remote origin` returned no refs. Neither main nor develop was published; remote head/history verification therefore remains blocked. A Git bundle outside the checkout preserves both exact refs and every commit: `../pin-web-download-review.bundle`. README provides authenticated push and bundle-restore commands. Before using them, recheck the remote is empty; do not force-push if it changed.
+
+## Live acceptance and operational gates
+
+1. Retain documented Pinterest platform authorization for the intended downloader, short-link resolution and transient metadata use.
+2. Configure an eligible official provider/token with Get Pin scope/access and restricted direct-video fields available; keep credentials server-side.
+3. Provide a user-owned permitted public sample and explicit content-owner permission; test standard/short links and actual returned MP4 variants only after both authorizations are verified.
+4. Complete container CI and authenticated develop publication. Review codec support on target browsers and real upstream CDN response compatibility within the exact allowlist. Unexpected CDN hosts fail closed and require a reviewed code change.
+5. Deployment needs separate approval. Reverse-proxy authentication, TLS, private upstream networking, bounded limits and redacted capability-path logging must be configured before enabling a shared instance. The app has no account sign-in or distributed quotas.
+
+HLS is intentionally unsupported: bounded allowlisted segment validation and encryption handling have not been established, and no remote FFmpeg networking is used. No transcode, synthetic resolution, third-party embed, cookie or anti-bot bypass exists.

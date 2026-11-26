@@ -29,3 +29,11 @@ Objective: a minimal responsive Pinterest video downloader with an authorized of
 - Browser and real-entry QA verified: Chromium headless shell 134 (stable fallback installed outside repo) passed at 1440, 768, 390 and 320 pixels. Each size completed real form → injected official adapter → preview metadata (320px video width) → attachment download with byte-for-byte fixture comparison and no horizontal overflow. Non-video/HLS/unavailable/loading states, safe text insertion, keyboard focus and zero browser page errors passed. Corrected fixture stream buffers and used a locally generated VP9 MP4 because this Chromium build lacks H264. No CSP relaxation was used.
 - Production entry test added; npm test now 19 passed. Actual node src/index.js serves health/UI with disabled provider, returns 503 for download lookup, logs no URL, and exits cleanly on SIGTERM.
 - Screenshot review completed for desktop empty and mobile success states. Replaced emoji-dependent decorative marks with native SVG. Re-ran all four responsive browser flows with actual preview play/currentTime advancement and byte-exact download; all passed, zero page errors. npm test remained 19/19; diff whitespace check passed.
+
+## Completion and remaining gates
+- Implementation, tests, native responsive UI, safe defaults, docs and test-only workflow complete locally.
+- Browser QA passed all four widths with actual playback and exact download bytes. Unit/integration suite: 19 passed. See QA.md for evidence and scope.
+- Workflow host Node version explicitly set to 24; Docker test/build/run remains unexecuted without a runtime. CI cannot start while repository publication is blocked.
+- GitHub connector access verified, but exposed APIs cannot upload exact root/author/committer objects. Local Git authentication is absent. Do not recreate/rewrite tested history. Preserve bundle and finish via authenticated atomic push per README.
+- Remote remains empty. No merge, force push, deployment, public preview, paid service, Hostinger/VPS/Coolify action or RuteX modification occurred.
+- Live acceptance awaits documented platform approval, eligible official direct-video access and a user-owned explicitly permitted sample. HLS remains unsupported.

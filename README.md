@@ -62,7 +62,7 @@ After review and explicit deployment approval only, follow [Coolify's Dockerfile
 
 `npm test` runs unit/security tests and real loopback HTTP integrations with dependency-injected fixtures. `scripts/fixture-server.mjs` uses the official adapter with a strictly local in-memory transport and locally generated MP4; it listens on `127.0.0.1:3100` only. It is not a production configuration option.
 
-For browser QA, install Python Playwright and its Chromium browser, start `node scripts/fixture-server.mjs`, then run `python scripts/browser-qa.py` in another terminal. Screenshots are written under ignored `artifacts/`. The test-only GitHub Actions workflow runs container integration, safe default entry-point checks, and fixture browser QA on `develop`; it has read-only repository permission and no deployment step. See [QA.md](QA.md) for actual results and unverified gates.
+For browser QA, install Python Playwright and its Chromium browser, start `node scripts/fixture-server.mjs`, then run `python scripts/browser-qa.py` in another terminal. Screenshots are written under ignored `artifacts/`. If using an already installed browser build, set the test-only `BROWSER_EXECUTABLE_PATH` variable to its executable. The checked-in sample is a one-second locally generated VP9-in-MP4 file; no third-party content is included. The test-only GitHub Actions workflow runs container integration, safe default entry-point checks, and fixture browser QA on `develop`; it has read-only repository permission and no deployment step. See [QA.md](QA.md) for actual results and unverified gates.
 
 ## Publication without losing local history
 

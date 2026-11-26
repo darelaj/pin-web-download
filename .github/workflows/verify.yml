@@ -36,6 +36,9 @@ jobs:
           curl -fsS http://127.0.0.1:3000/app.css > /dev/null
           test "$(curl -s -o /tmp/error.json -w '%{http_code}' -H 'Content-Type: application/json' -d '{"url":"https://pinterest.com/pin/1/","permission":true}' http://127.0.0.1:3000/api/metadata)" = 503
           test "$(docker exec pinfold id -u)" != 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
       - name: Verify responsive browser interaction with local fixtures
         shell: bash
         run: |

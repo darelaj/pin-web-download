@@ -68,3 +68,10 @@ test('request body and origin boundaries', async t => {
   assert.equal((await metadata({ url: 'x'.repeat(5000) })).status, 413);
   assert.equal((await fetch(base + '/api/metadata', { method: 'POST', body: 'x' })).status, 415);
 });
+test('entry page and assets are served with offline CSP and native controls', async t => {
+  const { base } = await setup(t);
+  const page = await fetch(base + '/'); const html = await page.text();
+  assert.equal(page.status, 200); assert.match(html, /<form id="download-form">/); assert.match(html, /<video id="preview" controls/);
+  assert.match(page.headers.get('content-security-policy'), /media-src 'self'/);
+  for (const asset of ['/app.css', '/app.js']) { const r = await fetch(base + asset); assert.equal(r.status, 200); assert.ok((await r.text()).length > 100); }
+});

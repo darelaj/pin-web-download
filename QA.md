@@ -6,7 +6,7 @@ Updated: 2026-11-27 (original official-mode QA: 2026-11-26). Workspace: isolated
 
 | Check | Actual result |
 |---|---|
-| `npm test` after final application changes | 48 tests passed; 0 failed, skipped or cancelled |
+| `npm test` after final application changes | 54 tests passed; 0 failed, skipped or cancelled |
 | Actual production `node src/index.js` | Child process served health and UI, default provider returned 503, logs contained no URL, SIGTERM exited with code 0 |
 | Official provider and standard/short link fixtures | Canonical ID, documented metadata mapping, bounded HEAD redirects, unavailable/non-video/HLS behavior passed |
 | Metadata → opaque preview/download HTTP flow | MP4 content type/disposition, exact response bytes and no exposed upstream media URL passed |
@@ -136,3 +136,23 @@ Browser official provider: 1440/768/390/320px passed
 Both browser fixtures now exercise the synthetic 308 pin.it → exact API resolver → 302 sent chain at short-link viewports. Their resolver fixture asserts HEAD with no auth/cookie and throws if sent is fetched. Poster bytes, actual preview playback and downloaded bytes, keyboard/fallback/error states, no overflow and zero browser page errors passed. Unit tests also exercise both production provider adapters with the same chain and assert only canonical Pin extraction. HTTP integration covers the full public-provider metadata/thumbnail/preview/download entry path.
 
 No new live Pinterest request or actual video fetch was made. The parent's supplied anonymous HEAD observations informed the fixture shape; this work does not claim live extraction/video compatibility. No local Docker runtime or fresh post-fix CI run was used, and publication/deployment remains with the parent. Prior CI evidence applies only to its recorded commits.
+
+
+## False-blocked / missing-record diagnostics fix — 2026-11-27
+
+Exact base: published develop `9ff58a1411288fc2fdbc2777f381250bcda5213c`. Sanitized fixtures model the parent's structural observations: a global `<style id="recaptcha">`, otherwise rendered Pin HTML, a `<video>` with track but no src/source, known framework runtime/state scripts without the requested record, and a separate page whose canonical/OG points at another Pin ID. No real Pin IDs, raw page captures, real tracking, live page/media requests or new remote endpoints were used.
+
+The parser no longer treats CSS IDs/text, generic JavaScript strings, head metadata or known hidden/inert content as visible challenge evidence. Active password/auth forms, challenge iframes/widgets and rendered challenge text remain rejected, as do applicable private/unverified/DRM signals. A recognized runtime `__PWS_DATA__` shell may coexist with `__PWS_INITIAL_PROPS__` state. Every recognized source is still parsed and bounded; duplicate names, malformed applicable state and conflicting requested-Pin records cannot be ignored in favor of a convenient valid record. Identical consistent records are permitted.
+
+Missing requested records and known source-less shells now return `page_video_unavailable`/422, with the user-facing explanation that the signed-out page did not provide usable video data; the app no longer infers that a visible Pin is not a video. Missing canonical proof/malformed state remains unsupported. Explicit conflicting canonical/OG URLs or requested record IDs remain `pin_identity_mismatch`/422, with wording that does not assume the user's link is bad and explains that another Pin ID cannot be followed even if the video looks the same. No alternate-ID request is made.
+
+```text
+npm test: 54 passed, 0 failed/skipped/cancelled
+Official-mode browser fixtures: 1440/768/390/320px passed
+Public-page browser fixtures: 1440/768/390/320px passed
+JS syntax and git diff --check: passed
+```
+
+New real HTTP metadata tests distinguish the observed source-less shell, genuine ID conflict, visible challenge and malformed applicable state. They assert zero media requests and page requests only to the original canonical Pin. New browser public-mode cases assert the honest signed-out-data/identity/unsupported messages through the form; the successful case includes inert recaptcha styling and runtime+state coexistence. Both provider suites retained exact poster/download bytes, actual fixture playback, keyboard/fallback/error flows, no overflow and zero page errors. Only synthetic HTML and the existing locally generated PNG/MP4 were used.
+
+This change improves diagnosis; it does not recover the missing MP4, prove live compatibility, bypass access controls, follow the other canonical ID, call undocumented media APIs or guess CDN URLs. No live download or fresh container/CI run was performed for this commit. Root review/publication and any new verify-only CI remain pending; no deployment ran.

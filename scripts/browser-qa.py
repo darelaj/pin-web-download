@@ -54,7 +54,7 @@ with sync_playwright() as p:
   assert page.evaluate('document.documentElement.scrollWidth <= innerWidth'), f'result overflow {width}'
   page.screenshot(path=f'{artifacts}/success-{width}.png', full_page=True)
   results.append({'viewport':width,'empty':True,'form':True,'preview':True,'thumbnail':True,'download_bytes':True,'no_overflow':True})
- for pin,error in [('2','does not contain'),('3','only HLS'),('4','blocked' if mode=='public-page' else 'unavailable'),('8','Public access could not be verified'),('9','Public access could not be verified'),('10','Public access could not be verified'),('11','Public access could not be verified')]:
+ for pin,error in [('2','signed-out page' if mode=='public-page' else 'does not contain'),('3','only HLS'),('4','blocked' if mode=='public-page' else 'unavailable'),('8','Public access could not be verified'),('9','Public access could not be verified'),('10','Public access could not be verified'),('11','Public access could not be verified')]:
   page.locator('#pin-url').fill(f'https://www.pinterest.com/pin/{pin}/')
   page.locator('#submit').click()
   expect(page.locator('#status')).to_have_class(re.compile(r'error'))
@@ -69,7 +69,7 @@ with sync_playwright() as p:
   assert page.locator('#load-preview').is_enabled()
   assert page.locator('#download').get_attribute('href').startswith('/api/download/')
  if mode=='public-page':
-  for pin,text in [('12','blocked'),('13','blocked'),('14','does not match')]:
+  for pin,text in [('12','blocked'),('13','blocked'),('14','conflicting Pin identity'),('15','signed-out page'),('16','conflicting Pin identity'),('17','could not safely read')]:
    page.locator('#pin-url').fill(f'https://www.pinterest.com/pin/{pin}/')
    page.locator('#submit').click()
    expect(page.locator('#status')).to_have_class(re.compile(r'error'))

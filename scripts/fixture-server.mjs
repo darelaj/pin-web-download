@@ -1,7 +1,7 @@
 // Test-only dependency injection. Not imported by production and not copied into its image.
 import { createApp } from '../src/app.js';
 import { publicPageProvider } from '../src/public-page.js';
-import { publicHTML } from './public-page-fixture.mjs';
+import { publicHTML, publicShellHTML } from './public-page-fixture.mjs';
 import { officialProvider } from '../src/provider.js';
 import { Readable } from 'node:stream';
 import { readFile } from 'node:fs/promises';
@@ -51,6 +51,10 @@ const publicRequest = async (value, options) => {
   if (id === '12') html += '<form action="/login/"><input type="password"></form>';
   if (id === '13') html += '<div id="captcha">Verify you are human</div>';
   if (id === '14') html = publicHTML('99');
+  if (id === '15') html = publicShellHTML(id);
+  if (id === '16') html = publicShellHTML(id, '99');
+  if (id === '17') html = publicShellHTML(id).replace('id="__PWS_INITIAL_PROPS__" type="application/json">', 'id="__PWS_INITIAL_PROPS__" type="application/json">broken');
+  if (id === '1') html = publicHTML(id, { title: '<script>alert("fixture")</script> Quiet moments' }, '__PWS_INITIAL_PROPS__').replace('</head>', '<style id="recaptcha">/* Verify you are human */</style></head>').replace('</body>', '<script id="__PWS_DATA__" type="application/json">{"props":{"runtimeConfig":{}}}</script></body>');
   return response(html, 200, { 'content-type': 'text/html; charset=utf-8' });
 };
 const provider = publicMode ? publicPageProvider({ enabled: true, request: publicRequest }) : officialProvider({ token: 'fixture-not-a-credential', platformAuthorized: true, request });

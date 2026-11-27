@@ -44,12 +44,12 @@ export function decodeCompletedRelay(text) {
 }
 export function assertUnrestricted(value) {
   if (!record(value)) fail('page_metadata_unsupported', 422);
-  for (const key of ['isPrivate', 'isSecret', 'isProtected', 'isRestricted', 'isUnavailable', 'isDeleted', 'requiresLogin', 'requiresAuth', 'isLoginRequired', 'isAuthRequired', 'isGated', 'isAgeRestricted', 'isBlocked', 'isAdsOnly', 'isDrm', 'isEncrypted', 'is_private', 'is_secret', 'is_removable', 'is_unavailable', 'requires_login', 'is_drm', 'is_encrypted']) {
+  for (const key of ['isAuth', 'isPrivate', 'isSecret', 'isProtected', 'isRestricted', 'isUnavailable', 'isDeleted', 'requiresLogin', 'requiresAuth', 'isLoginRequired', 'isAuthRequired', 'isGated', 'isAgeRestricted', 'isBlocked', 'isAdsOnly', 'isDrm', 'isEncrypted', 'is_private', 'is_protected', 'is_restricted', 'requires_auth', 'is_auth_required', 'is_login_required', 'is_secret', 'is_removable', 'is_unavailable', 'requires_login', 'is_drm', 'is_encrypted']) {
     if (Object.hasOwn(value, key) && value[key] !== false) fail('public_access_unverified', 403);
   }
   for (const key of ['privacy', 'visibility']) if (value[key] !== undefined && !['public', 'PUBLIC'].includes(value[key])) fail('public_access_unverified', 403);
   if (value.isPublic !== undefined && value.isPublic !== true) fail('public_access_unverified', 403);
-  if (value.isPlayable === false || value.is_playable === false || value.drm != null || value.licenseUrl || value.license_url || value.encryption || value.accessDenied || value.gateReason || value.restrictionReason || value.embed?.src) fail('page_blocked', 422);
+  if (value.isPlayable === false || value.is_playable === false || value.drm != null || value.licenseUrl || value.license_url || value.encryption || value.error || value.errors?.length || Number(value.statusCode) >= 400 || value.accessDenied || value.gateReason || value.restrictionReason || value.embed?.src) fail('page_blocked', 422);
 }
 function typedIdentity(value, id) {
   if (typeof value !== 'string' || value.length > 128 || !/^[A-Za-z0-9+/]+={0,2}$/.test(value)) fail('pin_identity_mismatch', 422);

@@ -35,3 +35,7 @@ test('Relay source and descriptor size/depth/count caps apply before accepting m
   assert.throws(() => readRelayPins(Array(65).fill(body()), '1'), { code: 'page_limit' });
   assert.throws(() => decodeCompletedRelay(`window.__PWS_RELAY_REGISTER_COMPLETED_REQUEST__("{}",{});`), { code: 'page_metadata_unsupported' });
 });
+test('explicit access errors cannot be masked by otherwise usable anonymous media', () => {
+  for (const pin of [{ error: { message: 'restricted fixture' } }, { errors: [{ message: 'denied fixture' }] }, { statusCode: 403 }, { requires_auth: true }, { is_restricted: true }, { isAuth: true }]) assert.throws(() => readRelayPins([body({ pin })], '1'));
+  assert.throws(() => readRelayPins([body({ payload: { data: { v3GetPinQueryv2: { error: { message: 'access denied' }, data: null } } } }), body()], '1'), { code: 'page_blocked' });
+});

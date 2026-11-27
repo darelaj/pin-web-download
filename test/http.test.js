@@ -131,7 +131,12 @@ test('public HTML provider completes standard/short metadata → poster → prev
   const publicRequest = async (value, options) => {
     const url = new URL(value);
     assert.equal(options.headers?.Authorization, undefined); assert.equal(options.headers?.Cookie, undefined);
-    if (url.hostname === 'pin.it') return response(Buffer.alloc(0), { location: 'https://www.pinterest.com/pin/123456789/' }, 302);
+    if (url.hostname === 'pin.it') return response(Buffer.alloc(0), { location: 'https://api.pinterest.com/url_shortener/fixture/redirect/' }, 308);
+    if (url.href === 'https://api.pinterest.com/url_shortener/fixture/redirect/') {
+      assert.equal(options.method, 'HEAD');
+      return response(Buffer.alloc(0), { location: 'https://www.pinterest.com/pin/123456789/sent/?fixture_tracking=discard' }, 302);
+    }
+    assert.equal(url.href, 'https://www.pinterest.com/pin/123456789/');
     htmlRequests++; return response(Buffer.from(publicHTML('123456789')), { 'content-type': 'text/html' });
   };
   const provider = publicPageProvider({ enabled: true, request: publicRequest });
@@ -153,4 +158,16 @@ test('public page blocks/identity failures return safe HTTP errors before media 
     const res = await app.metadata(); assert.equal(res.status, code === 'public_access_unverified' ? 403 : 422); assert.deepEqual(await res.json(), { error: code });
   }
   assert.equal(mediaRequests, 0);
+});
+test('metadata entry point distinguishes invalid input from unsafe upstream short-link redirects', async t => {
+  const { publicPageProvider } = await import('../src/public-page.js');
+  let calls = 0;
+  const provider = publicPageProvider({ enabled: true, request: async () => {
+    calls++; return response(Buffer.alloc(0), { location: 'https://api.pinterest.com/v5/pins/123' }, 308);
+  } });
+  const app = await setup(t, { provider });
+  const initial = await app.metadata({ url: 'https://api.pinterest.com/url_shortener/fixture/redirect/' });
+  assert.equal(initial.status, 400); assert.deepEqual(await initial.json(), { error: 'invalid_url' }); assert.equal(calls, 0);
+  const upstream = await app.metadata({ url: 'https://pin.it/fixture' });
+  assert.equal(upstream.status, 422); assert.deepEqual(await upstream.json(), { error: 'short_link_unavailable' }); assert.equal(calls, 1);
 });

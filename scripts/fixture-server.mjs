@@ -10,7 +10,12 @@ const poster = await readFile(new URL('../test/fixtures/poster.png', import.meta
 const response = (body, statusCode, headers) => Object.assign(Readable.from([Buffer.from(body)]), { statusCode, headers });
 const request = async (value, options) => {
   const u = new URL(value);
-  if (u.hostname === 'pin.it') return response('', 302, { location: 'https://www.pinterest.com/pin/1/' });
+  if (u.hostname === 'pin.it') return response('', 308, { location: 'https://api.pinterest.com/url_shortener/fixture/redirect/' });
+  if (u.href === 'https://api.pinterest.com/url_shortener/fixture/redirect/') {
+    if (options.method !== 'HEAD' || options.headers?.Authorization || options.headers?.Cookie) throw new Error('Resolver must be anonymous HEAD');
+    return response('', 302, { location: 'https://www.pinterest.com/pin/1/sent/?fixture_tracking=discard' });
+  }
+  if (u.pathname.includes('/sent/')) throw new Error('Terminal sent route must not be fetched');
   if (u.hostname === 'i.pinimg.com') {
     if (u.pathname === '/broken.png') return response('<svg/>', 200, { 'content-type': 'image/svg+xml' });
     return response(poster, 200, { 'content-type': 'image/png', 'content-length': String(poster.length) });
@@ -34,7 +39,7 @@ const request = async (value, options) => {
 const publicMode = process.argv.includes('--public-page');
 const publicRequest = async (value, options) => {
   const u = new URL(value);
-  if (u.hostname === 'pin.it') return request(value, options);
+  if (u.hostname === 'pin.it' || u.href === 'https://api.pinterest.com/url_shortener/fixture/redirect/') return request(value, options);
   if (!u.hostname.endsWith('pinterest.com')) return request(value, options);
   const id = u.pathname.split('/').filter(Boolean).pop();
   if (id === '4') return response('Not found', 404, { 'content-type': 'text/html' });

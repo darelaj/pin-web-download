@@ -81,7 +81,7 @@ export function publicPageProvider({ enabled = false, request = pinnedRequest } 
           if (hop === 3 || typeof response.headers.location !== 'string') fail('page_blocked', 422);
           let next; try { next = new URL(response.headers.location, current).href; } catch { fail('page_blocked', 422); }
           if (!samePin(next, id)) fail('page_blocked', 422);
-          current = next; continue;
+          current = pinInput(next).url.href; continue;
         }
         if (response.statusCode !== 200) { response.destroy(); fail('page_blocked', 422); }
         if (!/^text\/html(?:;|$)/i.test(response.headers['content-type'] ?? '')) { response.destroy(); fail('page_metadata_unsupported', 422); }

@@ -57,7 +57,12 @@ export function parsePublicPinHTML(html, id) {
     names.add(source.name);
     let state; try { state = JSON.parse(source.content); } catch { fail('page_metadata_unsupported', 422); }
     if (!record(state)) fail('page_metadata_unsupported', 422);
-    if (source.name === '__PWS_DATA__' && !record(state.props)) fail('page_metadata_unsupported', 422);
+    if (source.name === '__PWS_DATA__' && !record(state.props)) {
+      // The current route bootstrap carries routing metadata, not Pin records.
+      if (!Object.hasOwn(state, 'props') && state.routeTree && typeof state.routeTree === 'object' &&
+          Object.hasOwn(state, 'initialHandlerId')) continue;
+      fail('page_metadata_unsupported', 422);
+    }
     const redux = source.name === '__PWS_DATA__' ? state.props.initialReduxState : state.initialReduxState;
     // __PWS_DATA__ can be a runtime shell alongside __PWS_INITIAL_PROPS__.
     if (redux === undefined && source.name === '__PWS_DATA__') continue;

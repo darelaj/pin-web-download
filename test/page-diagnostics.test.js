@@ -13,6 +13,13 @@ test('sanitized video shell with inert recaptcha CSS and no requested state repo
   const missingRecord = publicHTML().replace('"pins":{"1":', '"pins":{"2":');
   assert.throws(() => parsePublicPinHTML(missingRecord, '1'), { code: 'page_video_unavailable' });
 });
+test('observed route bootstrap without props is not an alternative source of Pin data', () => {
+  const bootstrap = script('__PWS_DATA__', { initialHandlerId: 'fixture', routeTree: { route: 'pin' } });
+  assert.equal(parsePublicPinHTML(publicHTML('1', {}, '__PWS_INITIAL_PROPS__') + bootstrap, '1').id, '1');
+  const noPinData = '<link rel="canonical" href="https://pinterest.com/pin/1/">' +
+    script('__PWS_INITIAL_PROPS__', { initialReduxState: { pins: {} } }) + bootstrap;
+  assert.throws(() => parsePublicPinHTML(noPinData, '1'), { code: 'page_video_unavailable' });
+});
 test('normal valid page ignores global style/script metadata and accepts runtime shell alongside applicable state', () => {
   const html = publicHTML('1', {}, '__PWS_INITIAL_PROPS__') + runtime + '<style id="recaptcha">/* Access denied; Verify you are human */</style><script src="https://example.test/recaptcha.js">const label = "Robot check";</script>';
   assert.equal(parsePublicPinHTML(html, '1').variants.length, 1);

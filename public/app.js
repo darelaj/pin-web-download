@@ -18,7 +18,7 @@ const messages = {
   page_blocked: 'This page is blocked, requires login, or contains restricted media. Pinfold cannot retrieve it.',
   page_metadata_unsupported: 'Pinfold could not safely read this page’s video data. This does not mean the link is invalid.',
   page_video_unavailable: 'The signed-out page did not provide usable video data for this Pin. A visible video player alone is not enough to download it.',
-  pin_identity_mismatch: 'Pinterest returned a different or conflicting Pin identity. Pinfold cannot safely follow another Pin ID, even if the video looks the same.',
+  pin_identity_mismatch: 'Pinterest returned a different or conflicting Pin identity that Pinfold could not independently verify. No unverified alternative will be downloaded.',
   page_limit: 'This page exceeds the supported metadata limits.',
   public_access_unverified: 'Public access could not be verified for this Pin. Private, protected and unspecified access is not supported.',
   pin_unavailable: 'This Pin is unavailable to the connected account. Check the link and account access.',

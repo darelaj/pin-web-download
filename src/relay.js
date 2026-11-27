@@ -32,6 +32,7 @@ export function decodeCompletedRelay(text) {
     const end = valueEnd(source, offset);
     const encoded = JSON.parse(source.slice(offset, end));
     if (encoded.length > 64 * 1024) fail('page_limit', 422);
+    if (!/^%7b/i.test(encoded) || !/%7d$/i.test(encoded)) fail('page_metadata_unsupported', 422);
     descriptor = JSON.parse(decodeURIComponent(encoded)); offset = end; whitespace();
     if (source[offset++] !== ',') fail('page_metadata_unsupported', 422);
     whitespace(); if (source[offset] !== '{') fail('page_metadata_unsupported', 422);

@@ -46,3 +46,11 @@ test('sparse same-Pin completions deduplicate but unrelated or malformed sources
   assert.throws(() => parsePublicPinHTML(relayHTML('1', { script: full + relayScript('1', { pin: { requiresLogin: true, storyPinData: null } }) }), '1'), { code: 'public_access_unverified' });
   assert.throws(() => parsePublicPinHTML(relayHTML('1', { script: full + relayScript('1', { raw: 'window.__PWS_RELAY_REGISTER_COMPLETED_REQUEST__("%invalid",{});' }) }), '1'), { code: 'page_metadata_unsupported' });
 });
+test('alias canonical/OG origin and agreement remain strict before any independent fetch', async () => {
+  const initial = relayHTML('1', { canonicalID: '2' });
+  for (const html of [initial.replace('<meta property="og:url" content="https://www.pinterest.com/pin/2/">', ''), initial.replaceAll('https://www.pinterest.com/pin/2/', 'https://pinterest.com.evil.test/pin/2/'), initial.replace('rel="canonical"', 'rel="alternate"')]) {
+    let calls = 0;
+    await assert.rejects(publicPageProvider({ enabled: true, request: async () => { calls++; return response(html); } }).getPin('https://pinterest.com/pin/1/'));
+    assert.equal(calls, 1);
+  }
+});

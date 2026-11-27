@@ -5,7 +5,7 @@ export function publicPin(id = '1', overrides = {}) {
 export function publicHTML(id = '1', overrides = {}, slot = '__PWS_DATA__') {
   const initialReduxState = { pins: { [id]: publicPin(id, overrides) } };
   const state = slot === '__PWS_DATA__' ? { props: { initialReduxState } } : { initialReduxState };
-  return `<!doctype html><html><head><link rel="canonical" href="https://www.pinterest.com/pin/${id}/"><meta property="og:url" content="https://www.pinterest.com/pin/${id}/"></head><body><h1>Public Pin fixture</h1><script id="${slot}" type="application/json">${JSON.stringify(state).replaceAll('<', '\\u003c')}</script></body></html>`;
+  return `<!doctype html><html><head><link rel="canonical" href="https://www.pinterest.com/pin/${id}/"><meta property="og:url" content="https://www.pinterest.com/pin/${id}/"></head><body><h1>Public Pin fixture</h1><script id="${slot}" type="application/json">${JSON.stringify(state).replaceAll('<', String.fromCharCode(92) + 'u003c')}</script></body></html>`;
 }
 
 // Sanitized structural observation: rendered player shell without an exposed source or requested state record.
@@ -16,7 +16,7 @@ export function publicShellHTML(id = '1', canonicalID = id) {
 export function relayScript(id = '1', { variables = {}, pin = {}, payload, raw } = {}) {
   const descriptor = { variables: { pinId: id, isAuth: false, isAuthDesktop: false, isUnauth: true, ...variables } };
   const data = { entityId: id, id: Buffer.from(`Pin:${id}`).toString('base64'), seoUrl: `/pin/${id}/`, title: 'Anonymous Relay fixture', storyPinData: { pages: [{ blocks: [{ __typename: 'StoryPinVideoBlock', videoDataV2: { videoList720P: { v720P: { url: 'https://v1.pinimg.com/generated.mp4', width: 540, height: 960, thumbnail: 'https://i.pinimg.com/generated.png' } } } }] }] }, ...pin };
-  const body = raw ?? `window.__PWS_RELAY_REGISTER_COMPLETED_REQUEST__(${JSON.stringify(encodeURIComponent(JSON.stringify(descriptor)))},${JSON.stringify(payload ?? { data: { v3GetPinQueryv2: { data } } }).replaceAll('<', '\u003c')});`;
+  const body = raw ?? `window.__PWS_RELAY_REGISTER_COMPLETED_REQUEST__(${JSON.stringify(encodeURIComponent(JSON.stringify(descriptor)))},${JSON.stringify(payload ?? { data: { v3GetPinQueryv2: { data } } }).replaceAll('<', String.fromCharCode(92) + 'u003c')});`;
   return `<script data-relay-completed-request="true">${body}</script>`;
 }
 export function relayHTML(id = '1', { canonicalID = id, script = relayScript(id), prompt = '' } = {}) {

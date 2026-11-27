@@ -28,3 +28,10 @@ test('Relay media rejects restricted/DRM records, unapproved CDN hosts, HLS and 
   assert.throws(() => readRelayPins([body(), make({ url: 'https://v1.pinimg.com/generated.mp4', width: 720, height: 1280 })], '1'), { code: 'page_metadata_unsupported' });
   assert.equal(readRelayPins([make({ url: 'https://v1.pinimg.com/generated.mp4' })], '1'), null);
 });
+test('Relay source and descriptor size/depth/count caps apply before accepting media', () => {
+  assert.throws(() => decodeCompletedRelay('x'.repeat(512 * 1024 + 1)), { code: 'page_limit' });
+  const large = { variables: { pinId: '1', isAuth: false }, extra: 'x'.repeat(65 * 1024) };
+  assert.throws(() => decodeCompletedRelay(`window.__PWS_RELAY_REGISTER_COMPLETED_REQUEST__(${JSON.stringify(encodeURIComponent(JSON.stringify(large)))},{});`), { code: 'page_limit' });
+  assert.throws(() => readRelayPins(Array(65).fill(body()), '1'), { code: 'page_limit' });
+  assert.throws(() => decodeCompletedRelay(`window.__PWS_RELAY_REGISTER_COMPLETED_REQUEST__("{}",{});`), { code: 'page_metadata_unsupported' });
+});

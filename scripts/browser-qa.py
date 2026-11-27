@@ -39,7 +39,8 @@ with sync_playwright() as p:
    if page.locator('#preview').evaluate('(v) => v.readyState') >= 1: break
    page.wait_for_timeout(50)
   assert page.locator('#preview').evaluate('(v) => v.readyState') >= 1, page.locator('#preview-status').inner_text()
-  assert page.locator('#preview').evaluate('(v) => v.videoWidth')==320
+  assert page.locator('#preview').evaluate('(v) => v.videoWidth')==(540 if mode=='public-page' else 320)
+  if mode=='public-page': assert '540' in page.locator('#format').inner_text()
   page.locator('#preview').evaluate('(v) => v.play()')
   for attempt in range(50):
    if page.locator('#preview').evaluate('(v) => v.currentTime') > 0: break
@@ -50,7 +51,7 @@ with sync_playwright() as p:
    page.locator('#download').click()
   download=download_info.value
   assert download.suggested_filename=='pinterest-1.mp4'
-  assert Path(download.path()).read_bytes()==Path('test/fixtures/sample.mp4').read_bytes()
+  assert Path(download.path()).read_bytes()==Path('test/fixtures/relay-sample.mp4' if mode=='public-page' else 'test/fixtures/sample.mp4').read_bytes()
   assert page.evaluate('document.documentElement.scrollWidth <= innerWidth'), f'result overflow {width}'
   page.screenshot(path=f'{artifacts}/success-{width}.png', full_page=True)
   results.append({'viewport':width,'empty':True,'form':True,'preview':True,'thumbnail':True,'download_bytes':True,'no_overflow':True})
@@ -59,6 +60,19 @@ with sync_playwright() as p:
   page.locator('#submit').click()
   expect(page.locator('#status')).to_have_class(re.compile(r'error'))
   assert error in page.locator('#status').inner_text()
+  assert not page.locator('#result').is_visible()
+ if mode=='public-page':
+  page.locator('#pin-url').fill('https://www.pinterest.com/pin/18/')
+  page.locator('#submit').click()
+  page.locator('#result').wait_for(state='visible')
+  expect(page.locator('#format option')).to_have_count(1)
+  assert '540' in page.locator('#format').inner_text()
+  with page.expect_download() as proof_download:
+   page.locator('#download').click()
+  assert Path(proof_download.value.path()).read_bytes()==Path('test/fixtures/relay-sample.mp4' if mode=='public-page' else 'test/fixtures/sample.mp4').read_bytes()
+  page.locator('#pin-url').fill('https://www.pinterest.com/pin/20/')
+  page.locator('#submit').click()
+  expect(page.locator('#status')).to_have_class(re.compile(r'error'))
   assert not page.locator('#result').is_visible()
  for pin,text in [('6','No thumbnail available.'),('7','Thumbnail unavailable.')]:
   page.locator('#pin-url').fill(f'https://www.pinterest.com/pin/{pin}/')

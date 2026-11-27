@@ -60,5 +60,5 @@ test('HTTP metadata entry distinguishes unavailable signed-out shell, conflictin
     assert.equal(result.status, 422); assert.deepEqual(await result.json(), { error: code });
   }
   assert.equal(mediaRequests, 0);
-  assert.deepEqual(pageRequests, Array(4).fill('https://www.pinterest.com/pin/1/'));
+  assert.deepEqual(pageRequests, Array(4).fill('https://pinterest.com/pin/1/'));
 });

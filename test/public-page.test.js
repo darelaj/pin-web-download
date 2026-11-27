@@ -52,7 +52,7 @@ test('anonymous public provider supports standard and short links using only bou
       assert.equal(options.headers.Accept, 'text/html'); assert.equal(options.hosts.has('api.pinterest.com'), false);
       return response(publicHTML(), 200, { 'set-cookie': 'ignored_fixture=1' });
     } });
-    assert.equal((await provider.getPin(input)).id, '1'); assert.equal(calls.at(-1), 'https://www.pinterest.com/pin/1/');
+    assert.equal((await provider.getPin(input)).id, '1'); assert.equal(calls.at(-1), input.includes('pin.it') ? 'https://www.pinterest.com/pin/1/' : 'https://pinterest.com/pin/1/');
     assert.equal(calls.length, input.includes('pin.it') ? 2 : 1);
   }
 });

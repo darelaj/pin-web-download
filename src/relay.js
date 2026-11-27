@@ -43,7 +43,7 @@ export function decodeCompletedRelay(text) {
 }
 export function assertUnrestricted(value) {
   if (!record(value)) fail('page_metadata_unsupported', 422);
-  for (const key of ['isPrivate', 'isSecret', 'isProtected', 'isRestricted', 'isUnavailable', 'isDeleted', 'requiresLogin', 'requiresAuth', 'isLoginRequired', 'isAuthRequired', 'isGated', 'isAdsOnly', 'isDrm', 'isEncrypted', 'is_private', 'is_secret', 'is_removable', 'is_unavailable', 'requires_login', 'is_drm', 'is_encrypted']) {
+  for (const key of ['isPrivate', 'isSecret', 'isProtected', 'isRestricted', 'isUnavailable', 'isDeleted', 'requiresLogin', 'requiresAuth', 'isLoginRequired', 'isAuthRequired', 'isGated', 'isAgeRestricted', 'isBlocked', 'isAdsOnly', 'isDrm', 'isEncrypted', 'is_private', 'is_secret', 'is_removable', 'is_unavailable', 'requires_login', 'is_drm', 'is_encrypted']) {
     if (Object.hasOwn(value, key) && value[key] !== false) fail('public_access_unverified', 403);
   }
   for (const key of ['privacy', 'visibility']) if (value[key] !== undefined && !['public', 'PUBLIC'].includes(value[key])) fail('public_access_unverified', 403);
@@ -79,11 +79,15 @@ export function readRelayPins(scripts, id) {
     const story = pin.storyPinData;
     if (story == null) continue;
     assertUnrestricted(story);
+    if (story.pages == null) continue;
     if (!Array.isArray(story.pages) || story.pages.length > 20) fail('page_limit', 422);
     for (const page of story.pages) {
+      if (page == null) continue;
       assertUnrestricted(page);
+      if (page.blocks == null) continue;
       if (!Array.isArray(page.blocks) || page.blocks.length > 20) fail('page_limit', 422);
       for (const block of page.blocks) {
+        if (block == null) continue;
         assertUnrestricted(block);
         if (block.__typename !== 'StoryPinVideoBlock') continue;
         const video = block.videoDataV2;
@@ -93,6 +97,7 @@ export function readRelayPins(scripts, id) {
         if (list == null) continue;
         if (!record(list) || Object.keys(list).length > 20) fail('page_limit', 422);
         for (const entry of Object.values(list)) {
+          if (entry == null) continue;
           assertUnrestricted(entry);
           if (entry.url == null) continue;
           if (!complete) fail('public_access_unverified', 403);

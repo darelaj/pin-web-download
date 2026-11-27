@@ -17,6 +17,7 @@ CMD ["node", "src/index.js"]
 
 FROM runtime AS test
 COPY --chown=node:node test ./test
+COPY --chown=node:node scripts/public-page-fixture.mjs ./scripts/public-page-fixture.mjs
 RUN npm test
 
 FROM runtime AS production

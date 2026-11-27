@@ -14,7 +14,11 @@ const download = document.querySelector('#download');
 const messages = {
   invalid_url: 'Use a full Pinterest Pin link or a pin.it short link.',
   permission_required: 'Confirm that you own the video or have the creator’s permission.',
-  provider_disabled: 'Downloads are not enabled yet. An authorized Pinterest connection is required.',
+  provider_disabled: 'Downloads are not enabled yet. The operator must enable a permitted provider first.',
+  page_blocked: 'This page is blocked, requires login, or contains restricted media. Pinfold cannot retrieve it.',
+  page_metadata_unsupported: 'This public page format is not supported. No alternative access method will be attempted.',
+  pin_identity_mismatch: 'The page does not match the requested Pin. Check the original link.',
+  page_limit: 'This page exceeds the supported metadata limits.',
   public_access_unverified: 'Public access could not be verified for this Pin. Private, protected and unspecified access is not supported.',
   pin_unavailable: 'This Pin is unavailable to the connected account. Check the link and account access.',
   short_link_unavailable: 'This short link could not be resolved. Try the full Pin link.',

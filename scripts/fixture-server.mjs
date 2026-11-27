@@ -1,5 +1,7 @@
 // Test-only dependency injection. Not imported by production and not copied into its image.
 import { createApp } from '../src/app.js';
+import { publicPageProvider } from '../src/public-page.js';
+import { publicHTML } from './public-page-fixture.mjs';
 import { officialProvider } from '../src/provider.js';
 import { Readable } from 'node:stream';
 import { readFile } from 'node:fs/promises';
@@ -29,6 +31,24 @@ const request = async (value, options) => {
   if (u.href !== 'https://v.pinimg.com/generated.mp4') throw new Error('Unexpected fixture URL');
   return response(options.method === 'HEAD' ? '' : bytes, 200, { 'content-type': 'video/mp4', 'content-length': String(bytes.length) });
 };
-const app = createApp({ provider: officialProvider({ token: 'fixture-not-a-credential', platformAuthorized: true, request }), request, limits: { rate: 200 }, log: () => {} });
-app.listen(3100, '127.0.0.1', () => console.log('Fixture server on loopback port 3100'));
+const publicMode = process.argv.includes('--public-page');
+const publicRequest = async (value, options) => {
+  const u = new URL(value);
+  if (u.hostname === 'pin.it') return request(value, options);
+  if (!u.hostname.endsWith('pinterest.com')) return request(value, options);
+  const id = u.pathname.split('/').filter(Boolean).pop();
+  if (id === '4') return response('Not found', 404, { 'content-type': 'text/html' });
+  if (id === '5') await new Promise(r => setTimeout(r, 800));
+  const overrides = id === '2' ? { videos: undefined } : id === '3' ? { videos: { video_list: { hls: { url: 'https://v.pinimg.com/fixture.m3u8' } } } } :
+    id === '6' ? { images: {} } : id === '7' ? { images: { orig: { url: 'https://i.pinimg.com/broken.png' } } } :
+    id === '8' ? { is_private: true } : id === '9' ? { board: {} } : id === '10' ? { is_removable: true } : id === '11' ? { board: { privacy: 'protected' } } : {};
+  let html = publicHTML(id, { title: '<script>alert("fixture")</script> Quiet moments', ...overrides });
+  if (id === '12') html += '<form action="/login/"><input type="password"></form>';
+  if (id === '13') html += '<div id="captcha">Verify you are human</div>';
+  if (id === '14') html = publicHTML('99');
+  return response(html, 200, { 'content-type': 'text/html; charset=utf-8' });
+};
+const provider = publicMode ? publicPageProvider({ enabled: true, request: publicRequest }) : officialProvider({ token: 'fixture-not-a-credential', platformAuthorized: true, request });
+const app = createApp({ provider, request, limits: { rate: 200 }, log: () => {} });
+app.listen(3100, '127.0.0.1', () => console.log(`Fixture server (${publicMode ? 'public-page' : 'official'}) on loopback port 3100`));
 process.on('SIGTERM', () => app.shutdown());

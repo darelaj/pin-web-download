@@ -54,3 +54,12 @@ jobs:
             sleep 1
           done
           python3 scripts/browser-qa.py
+          kill "$fixture_pid"
+          wait "$fixture_pid"
+          node scripts/fixture-server.mjs --public-page &
+          fixture_pid=$!
+          for attempt in {1..20}; do
+            if curl -fsS http://127.0.0.1:3100/healthz > /dev/null; then break; fi
+            sleep 1
+          done
+          python3 scripts/browser-qa.py --public-page

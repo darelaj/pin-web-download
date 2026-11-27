@@ -1,6 +1,6 @@
 # Living implementation plan
 
-Objective: a minimal responsive Pinterest video downloader with an authorized official API provider, defensive streaming, and safe defaults. No deployment is authorized.
+Objective: a minimal responsive Pinterest video downloader with an official API provider and separately opted-in permitted personal public-page provider, defensive streaming, and safe defaults. No deployment is authorized.
 
 ## Phases and verification
 1. Scaffold and repo instructions: Node 24, native HTTP, node:test, ignore secrets. Verify package and initial tests.
@@ -12,8 +12,8 @@ Objective: a minimal responsive Pinterest video downloader with an authorized of
 
 ## Decisions
 - Native Node HTTP avoids framework dependencies; ipaddr.js classifies public IPs.
-- Official Get Pin is the only production provider. Both explicit platform approval and server token are required. Content-owner permission is separately confirmed per request.
-- Only direct native MP4 from documented media objects is supported. HLS is explicitly unavailable until bounded segment safety can be established.
+- Official Get Pin remains the default provider and requires explicit platform approval and a server token. On 2026-11-27 the user superseded the API-only decision with a separate opt-in permitted personal anonymous public-page provider. Neither public visibility nor personal use grants automated-access permission. Content-owner permission is separately confirmed per request; no fallback between providers.
+- Only direct native MP4 from the selected provider’s explicitly supported media objects is supported. HLS is explicitly unavailable until bounded segment safety can be established.
 - Fixtures are injected into exported application factories in tests only. No environment-selected fixture mode.
 - Process-local opaque tickets hold only bounded short-lived routing metadata; no database or media files. Restart invalidates tickets. Provider is called for each lookup.
 
@@ -59,3 +59,4 @@ Objective: a minimal responsive Pinterest video downloader with an authorized of
 - Narrow HTML parsing via parse5, known embedded state slots only, exact requested Pin/canonical identity, positive Pin and Board public flags, bounded direct native MP4 mapping. Unknown shapes/login/challenges/private/DRM/embeds fail closed. No undocumented API, executable page JavaScript, cookies or session storage.
 - Parser/security fixture suite and HTTP/browser entry flows are being verified. No permissioned live sample or automated-access authorization is available, so no live Pin/media fetch is planned.
 - Core provider verified: npm test 36 passed, 0 failures/skips. Synthetic standard/short URLs, known state slots, canonical/state identity, optional thumbnails, direct variants, opt-in/default/API isolation, login/CAPTCHA/blocks/privacy/DRM/embed rejection, HTTP redirect/MIME/size bounds covered. No live Pin/content requests. parse5 8.0.0 is pinned; original implementation references upstream shapes without copying extractor code.
+- Integration/UI increment verified: 39 Node tests passed (including production-command public-mode selection without API credentials/live lookups), public HTML standard/short → metadata → poster → preview/download HTTP flow, and safe blocked/misbound responses before media access. npm audit: 0 vulnerabilities. Responsive Chromium flows for both official and public-page providers passed at 1440/768/390/320 widths with actual playback, exact image/video bytes, fallback/errors, keyboard focus, no overflow and zero page errors. Workflow YAML/syntax/diff checks passed; verify-only workflow now covers both providers. No local OCI runtime is available; new-commit Docker CI awaits review/publication.

@@ -19,3 +19,15 @@ test('actual production entry point serves safe defaults and shuts down on SIGTE
   assert.equal(output.includes('https://'), false); assert.equal(stderr, '');
   child.kill('SIGTERM'); const [code] = await once(child, 'exit'); assert.equal(code, 0);
 });
+test('production command selects explicitly opted-in public mode without API credentials or a live Pin request', async t => {
+  const probe = net.createServer(); probe.listen(0, '127.0.0.1'); await once(probe, 'listening');
+  const port = probe.address().port; await new Promise(r => probe.close(r));
+  const child = spawn(process.execPath, ['src/index.js'], { cwd: new URL('..', import.meta.url), env: { PATH: process.env.PATH, PORT: String(port), PINTEREST_PROVIDER: 'public-page', PINTEREST_PUBLIC_PAGE_ENABLED: 'true' }, stdio: ['ignore', 'pipe', 'pipe'] });
+  t.after(() => { if (child.exitCode === null) child.kill('SIGKILL'); });
+  await Promise.race([once(child.stdout, 'data'), new Promise((_, reject) => { const timer = setTimeout(() => reject(new Error('entry did not start')), 3000); timer.unref(); })]);
+  const base = `http://127.0.0.1:${port}`;
+  assert.deepEqual(await (await fetch(base + '/healthz')).json(), { status: 'ok', provider: 'enabled' });
+  const denied = await fetch(base + '/api/metadata', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ url: 'https://pinterest.com/pin/1/', permission: false }) });
+  assert.equal(denied.status, 403); assert.deepEqual(await denied.json(), { error: 'permission_required' });
+  child.kill('SIGTERM'); const [code] = await once(child, 'exit'); assert.equal(code, 0);
+});

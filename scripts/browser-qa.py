@@ -4,7 +4,10 @@ from playwright.sync_api import sync_playwright, expect
 import json
 import os
 import re
-Path('artifacts').mkdir(exist_ok=True)
+import sys
+mode='public-page' if '--public-page' in sys.argv else 'official'
+artifacts=Path('artifacts') / mode
+artifacts.mkdir(parents=True,exist_ok=True)
 with sync_playwright() as p:
  browser=p.chromium.launch(headless=True, executable_path=os.environ.get('BROWSER_EXECUTABLE_PATH'), args=['--no-sandbox'])
  context=browser.new_context(accept_downloads=True, reduced_motion='reduce')
@@ -17,8 +20,8 @@ with sync_playwright() as p:
   page.goto('http://127.0.0.1:3100/')
   assert page.locator('#status').inner_text().endswith('Ready when you are.')
   assert page.evaluate('document.documentElement.scrollWidth <= innerWidth'), f'overflow {width}'
-  page.screenshot(path=f'artifacts/empty-{width}.png', full_page=True)
-  page.locator('#pin-url').fill('https://pin.it/fixture')
+  page.screenshot(path=f'{artifacts}/empty-{width}.png', full_page=True)
+  page.locator('#pin-url').fill('https://www.pinterest.com/pin/1/' if width == 1440 else 'https://pin.it/fixture')
   page.locator('#permission').check()
   page.locator('#submit').click()
   page.locator('#result').wait_for(state='visible')
@@ -30,7 +33,7 @@ with sync_playwright() as p:
   assert poster.startswith('/api/thumbnail/') and 'pinimg' not in poster
   image_response=context.request.get('http://127.0.0.1:3100'+poster)
   assert image_response.status==200 and image_response.body()==Path('test/fixtures/poster.png').read_bytes()
-  page.screenshot(path=f'artifacts/poster-{width}.png', full_page=True)
+  page.screenshot(path=f'{artifacts}/poster-{width}.png', full_page=True)
   page.locator('#load-preview').click()
   for attempt in range(100):
    if page.locator('#preview').evaluate('(v) => v.readyState') >= 1: break
@@ -49,9 +52,9 @@ with sync_playwright() as p:
   assert download.suggested_filename=='pinterest-1.mp4'
   assert Path(download.path()).read_bytes()==Path('test/fixtures/sample.mp4').read_bytes()
   assert page.evaluate('document.documentElement.scrollWidth <= innerWidth'), f'result overflow {width}'
-  page.screenshot(path=f'artifacts/success-{width}.png', full_page=True)
+  page.screenshot(path=f'{artifacts}/success-{width}.png', full_page=True)
   results.append({'viewport':width,'empty':True,'form':True,'preview':True,'thumbnail':True,'download_bytes':True,'no_overflow':True})
- for pin,error in [('2','does not contain'),('3','only HLS'),('4','unavailable'),('8','Public access could not be verified'),('9','Public access could not be verified'),('10','Public access could not be verified'),('11','Public access could not be verified')]:
+ for pin,error in [('2','does not contain'),('3','only HLS'),('4','blocked' if mode=='public-page' else 'unavailable'),('8','Public access could not be verified'),('9','Public access could not be verified'),('10','Public access could not be verified'),('11','Public access could not be verified')]:
   page.locator('#pin-url').fill(f'https://www.pinterest.com/pin/{pin}/')
   page.locator('#submit').click()
   expect(page.locator('#status')).to_have_class(re.compile(r'error'))
@@ -65,6 +68,13 @@ with sync_playwright() as p:
   assert not page.locator('#preview').get_attribute('poster')
   assert page.locator('#load-preview').is_enabled()
   assert page.locator('#download').get_attribute('href').startswith('/api/download/')
+ if mode=='public-page':
+  for pin,text in [('12','blocked'),('13','blocked'),('14','does not match')]:
+   page.locator('#pin-url').fill(f'https://www.pinterest.com/pin/{pin}/')
+   page.locator('#submit').click()
+   expect(page.locator('#status')).to_have_class(re.compile(r'error'))
+   assert text in page.locator('#status').inner_text()
+   assert not page.locator('#result').is_visible()
  page.locator('#pin-url').fill('https://www.pinterest.com/pin/5/')
  page.locator('#submit').click()
  assert page.locator('#submit').is_disabled()
@@ -76,5 +86,5 @@ with sync_playwright() as p:
  for _ in range(3): page.keyboard.press('Tab')
  assert page.locator('#pin-url').evaluate('(e) => e === document.activeElement')
  assert not errors,errors
- print(json.dumps({'responsive':results,'errors_hls_nonvideo_unavailable':True,'thumbnail_missing_and_rejected_fallback':True,'private_unknown_adonly_denied_board':True,'loading':True,'keyboard':True,'page_errors':errors},indent=2))
+ print(json.dumps({'provider':mode,'responsive':results,'errors_hls_nonvideo_unavailable':True,'thumbnail_missing_and_rejected_fallback':True,'private_unknown_adonly_denied_board':True,'loading':True,'keyboard':True,'page_errors':errors},indent=2))
  browser.close()

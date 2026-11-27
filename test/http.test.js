@@ -122,3 +122,35 @@ test('private official-board metadata cannot issue public media or thumbnail cap
   const { metadata } = await setup(t, { provider, request: async () => { mediaCalls++; return response(); } });
   const result = await metadata(); assert.equal(result.status, 403); assert.deepEqual(await result.json(), { error: 'public_access_unverified' }); assert.equal(mediaCalls, 0);
 });
+test('public HTML provider completes standard/short metadata → poster → preview → download through HTTP entry points', async t => {
+  const { publicPageProvider } = await import('../src/public-page.js');
+  const { publicHTML } = await import('../scripts/public-page-fixture.mjs');
+  const { readFile } = await import('node:fs/promises');
+  const image = await readFile(new URL('./fixtures/poster.png', import.meta.url));
+  let htmlRequests = 0; let mediaRequests = 0;
+  const publicRequest = async (value, options) => {
+    const url = new URL(value);
+    assert.equal(options.headers?.Authorization, undefined); assert.equal(options.headers?.Cookie, undefined);
+    if (url.hostname === 'pin.it') return response(Buffer.alloc(0), { location: 'https://www.pinterest.com/pin/123456789/' }, 302);
+    htmlRequests++; return response(Buffer.from(publicHTML('123456789')), { 'content-type': 'text/html' });
+  };
+  const provider = publicPageProvider({ enabled: true, request: publicRequest });
+  const app = await setup(t, { provider, request: async value => { mediaRequests++; return String(value).includes('i.pinimg.com') ? response(image, { 'content-type': 'image/png' }) : response(); } });
+  for (const url of ['https://www.pinterest.com/pin/123456789/', 'https://pin.it/fixture']) {
+    const res = await app.metadata({ url }); assert.equal(res.status, 200); const data = await res.json();
+    assert.equal(JSON.stringify(data).includes('pinimg.com'), false);
+    const thumb = await fetch(app.base + data.formats[0].thumbnail); assert.deepEqual(Buffer.from(await thumb.arrayBuffer()), image);
+    for (const key of ['preview', 'download']) { const r = await fetch(app.base + data.formats[0][key]); assert.equal(r.status, 200); assert.deepEqual(Buffer.from(await r.arrayBuffer()), bytes); }
+  }
+  assert.equal(htmlRequests, 2); assert.equal(mediaRequests, 8);
+});
+test('public page blocks/identity failures return safe HTTP errors before media access', async t => {
+  const { publicPageProvider } = await import('../src/public-page.js');
+  const { publicHTML } = await import('../scripts/public-page-fixture.mjs');
+  let mediaRequests = 0;
+  for (const [html, code] of [[publicHTML('123456789', { is_private: true }), 'public_access_unverified'], [publicHTML('999'), 'pin_identity_mismatch'], [publicHTML('123456789') + '<div id="captcha">Verify you are human</div>', 'page_blocked']]) {
+    const app = await setup(t, { provider: publicPageProvider({ enabled: true, request: async () => response(Buffer.from(html), { 'content-type': 'text/html' }) }), request: async () => { mediaRequests++; return response(); } });
+    const res = await app.metadata(); assert.equal(res.status, code === 'public_access_unverified' ? 403 : 422); assert.deepEqual(await res.json(), { error: code });
+  }
+  assert.equal(mediaRequests, 0);
+});

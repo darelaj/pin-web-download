@@ -24,8 +24,8 @@ export function parsePublicPinHTML(html, id) {
     const a = attributes(node);
     if (node.tagName === 'link' && (a.rel ?? '').toLowerCase().split(/\s+/).includes('canonical')) canonical.push(a.href);
     if (node.tagName === 'meta' && a.property === 'og:url' && !samePin(a.content, id)) fail('pin_identity_mismatch', 422);
-    if (node.tagName === 'input' && a.type?.toLowerCase() === 'password' || node.tagName === 'form' && /(?:login|signin|auth|challenge|captcha)/i.test(a.action ?? '') || /(?:captcha|recaptcha|turnstile|challenge-container)/i.test(`${a.id ?? ''} ${a.class ?? ''}`) || /(?:recaptcha|hcaptcha|challenges\.cloudflare|turnstile)/i.test(a.src ?? '') || a['data-required-login'] === 'true') blocked = true;
-    if (node.nodeName === '#text' && /verify (?:that )?you are human|unusual traffic|access denied|automated requests|complete the captcha|log in to (?:view|continue|watch)/i.test(node.value)) blocked = true;
+    if (node.tagName === 'input' && a.type?.toLowerCase() === 'password' || node.tagName === 'form' && /(?:login|signin|auth|challenge|captcha)/i.test(a.action ?? '') || /(?:captcha|recaptcha|turnstile|challenge-container|challenge-running|cf-chl|login-required|login-modal)/i.test(`${a.id ?? ''} ${a.class ?? ''} ${a['data-test-id'] ?? ''}`) || /(?:recaptcha|hcaptcha|challenges\.cloudflare|turnstile)/i.test(a.src ?? '') || a['data-required-login'] === 'true') blocked = true;
+    if (node.nodeName === '#text' && /verify (?:that )?you are human|unusual traffic|access denied|automated requests|complete the captcha|robot check|just a moment|(?:log in|sign in|sign up) to (?:view|continue|watch|see)/i.test(node.value)) blocked = true;
     if (node.tagName === 'script' && ['__PWS_DATA__', '__PWS_INITIAL_PROPS__'].includes(a.id)) {
       if (a.type !== 'application/json' || a.src) fail('page_metadata_unsupported', 422);
       const content = (node.childNodes ?? []).map(child => child.value ?? '').join('');

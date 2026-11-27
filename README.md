@@ -36,7 +36,7 @@ To unblock live acceptance testing: supply a reviewed automated-access authoriza
 
 ## Anonymous public-page mode (separate opt-in)
 
-The user requested this mode on 2026-11-27, superseding the earlier API-only implementation decision. It is for permitted personal use of content the user owns or has permission to download. [Pinterest’s terms](https://policy.pinterest.com/en/terms-of-service) restrict unauthorized automated access, and its [developer guidelines](https://policy.pinterest.com/en/developer-guidelines) also apply as relevant. A public URL, an anonymous HTTP 200 response, a content-owner permission or these configuration switches do **not** establish Pinterest authorization. The operator must verify automated access is permitted for the intended use before enabling or making live requests.
+This mode is for permitted personal use of content the user owns or has permission to download. [Pinterest’s terms](https://policy.pinterest.com/en/terms-of-service) restrict unauthorized automated access, and its [developer guidelines](https://policy.pinterest.com/en/developer-guidelines) also apply as relevant. A public URL, an anonymous HTTP 200 response, a content-owner permission or these configuration switches do **not** establish Pinterest authorization. The operator must verify automated access is permitted for the intended use before enabling or making live requests.
 
 Explicitly select the provider and opt in at runtime:
 
@@ -79,7 +79,7 @@ docker run --rm --read-only --cap-drop ALL --security-opt no-new-privileges \
   -p 127.0.0.1:3000:3000 pinfold
 ```
 
-The health check uses `/healthz`; SIGINT/SIGTERM abort work and close connections with a five-second exit bound. Runtime image includes only production source/assets and the IP classification dependency, not fixture scripts/tests. The base uses Node 24 Alpine; review/pin its digest in your deployment supply-chain process before release.
+The health check uses `/healthz`; SIGINT/SIGTERM abort work and close connections with a five-second exit bound. Runtime image includes only production source/assets and production dependencies (IP classification and HTML parsing), not fixture scripts/tests. The base uses Node 24 Alpine; review/pin its digest in your deployment supply-chain process before release.
 
 Terminate HTTPS at a reverse proxy, authenticate access if enabled, limit request bodies to 4 KiB, impose rate/concurrency/bandwidth limits, disable response buffering for streaming, allow at least 35 seconds for responses, and keep upstream app access private. Do not log `/api/preview/*`, `/api/download/*` or `/api/thumbnail/*` capability paths. Set a suitable HSTS policy at the HTTPS proxy. Avoid serving multiple instances without sticky/shared tickets and shared limits.
 

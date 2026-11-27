@@ -1,12 +1,12 @@
 # QA report
 
-Date: 2026-11-26. Workspace: isolated `pin-web-download` clone. Node: 24.22.3. No live Pinterest Pin or video was accessed. No public preview or deployment was created.
+Updated: 2026-11-27 (original official-mode QA: 2026-11-26). Workspace: isolated `pin-web-download` clone. Node: 24.22.3. No live Pinterest Pin or video was accessed. No public preview or deployment was created.
 
 ## Executed checks
 
 | Check | Actual result |
 |---|---|
-| `npm test` after final application changes | 28 tests passed; 0 failed, skipped or cancelled |
+| `npm test` after final application changes | 39 tests passed; 0 failed, skipped or cancelled |
 | Actual production `node src/index.js` | Child process served health and UI, default provider returned 503, logs contained no URL, SIGTERM exited with code 0 |
 | Official provider and standard/short link fixtures | Canonical ID, documented metadata mapping, bounded HEAD redirects, unavailable/non-video/HLS behavior passed |
 | Metadata → opaque preview/download HTTP flow | MP4 content type/disposition, exact response bytes and no exposed upstream media URL passed |
@@ -76,3 +76,41 @@ The operator must keep the enabled instance behind authentication for the intend
 [GitHub Actions](https://github.com/darelaj/pin-web-download/actions/runs/45834060039) passed at application commit `307d9ecf99a246142769b0f07c7838c94084af3b`. The nonroot Docker test target ran the Node suite successfully; the production image built, started with a read-only filesystem and dropped capabilities, and passed the HTTP health, UI assets, disabled-provider, and nonroot UID checks. Chromium fixture browser QA passed in the workflow after the container checks. No live Pinterest video was tested.
 
 The `develop` branch was published using GitHub's repository API. It preserves the individual task boundaries and commit messages, with each GitHub file-tree SHA verified against its local counterpart. GitHub commit IDs differ because the commit metadata differs. No application code was merged to `main`; no deployment ran.
+
+
+## Public-page mode update — 2026-11-27
+
+Started from published `develop` commit `83a9adbe9710eb15e397ed16b6ee0031fb9f3cbc`. The original local chain is preserved under `local-original-develop`; no history was rebased or overwritten. The official provider and its Board privacy verification remain available. The earlier API-only decision is superseded by a separate, disabled-by-default `public-page` provider for permitted personal use; no provider fallback occurs automatically.
+
+Actual local results after this change:
+
+```text
+npm test: tests 39, pass 39, fail 0, skipped 0, cancelled 0
+npm audit --omit=dev: found 0 vulnerabilities
+Node/JS syntax and git diff --check: passed
+Verify-only workflow YAML: parsed; develop-only trigger and contents:read preserved
+```
+
+New unit/security coverage verifies exact separate opt-in, no API token requirement, official-mode isolation, the two recognized embedded JSON slots, only the requested Pin (not recommendations), canonical/state identity, duplicate/malformed/inert/comment/template/noscript rejection, explicit positive Pin/Board public flags, private/unknown/ad-only contradictions, login/password/modal markers, CAPTCHA/robot/Cloudflare markers, status 401/403/429, DRM/encryption and embed rejection, direct MP4 variant mapping, no video/HLS-only results, page/JSON/depth/list limits, MIME/encoding/declared-body bounds, bounded same-Pin redirects and wrong/login/private-host redirect rejection. No upstream extractor code was copied. parse5 8.0.0 is pinned and is used only for HTML tree parsing, never script execution.
+
+Real loopback HTTP integration covers standard and short links → public HTML provider → metadata → opaque poster → streamed preview/download. It checks exact local image/video bytes, no leaked CDN URL, safe blocked/private/misbound errors before media requests, and retained permission/rate/ticket/transport tests. The actual production command was started with the separate public-page opt-in and no API credentials: health reported enabled, a permission-denied lookup was rejected before network use, and SIGTERM exited cleanly. No real Pin request was used for that test.
+
+Responsive Chromium fixture QA passed **both providers** at 1440×1000, 768×1024, 390×844 and 320×740. The 1440px flow uses a standard Pin link; the remaining flows use a short link. Each provider passed poster decoding/exact image bytes, actual preview playback, attachment byte comparison, loading/success/no-video/HLS/unavailable or blocked states, thumbnail fallback, private/unknown/ad-only rejection, keyboard focus, no horizontal overflow and zero browser page errors. Public mode additionally passed login/challenge/misbound-page error states. The synthetic public HTML contains no real Pinterest content. The same locally generated PNG and VP9-in-MP4 fixtures are used.
+
+Reproduce in one loopback network namespace per provider:
+
+```sh
+node scripts/fixture-server.mjs --public-page
+python scripts/browser-qa.py --public-page
+# Official regression: omit --public-page from both commands.
+```
+
+Screenshots now live under ignored `artifacts/public-page/` and `artifacts/official/`; mobile public-page poster rendering was visually reviewed. The prior browser cache was absent after environment restart, so the test-only Chromium 134 headless shell was restored outside the repo using the same stable fallback installer. No production browser runtime is introduced.
+
+### What was not verified for this change
+
+- **Live Pinterest HTML/video:** no permissioned sample and no established automated-access authorization were available. No real Pin/media fetch was made. Personal use/public visibility does not grant automated-access permission under Pinterest's restrictions. Live pages may omit the required positive visibility fields or use another layout; such pages fail closed. This is a synthetic-fixture-verified parser, not a claim that current live Pinterest pages work.
+- **New Docker image / CI run:** no Docker/Podman/Buildah/runtime socket is available locally. The earlier successful GitHub CI run recorded above covers the previous official-mode tree, not these commits. The verify-only workflow now runs both fixture providers after its container checks, but requires publication/review before a new run. No privileged/paid host or deployment was provisioned.
+- **Other browsers/codecs:** Chromium fixture playback is not real Pinterest H264, Safari or iOS acceptance.
+
+Operators must review permission for automated access independently of creator permission, select the provider explicitly, keep the instance limited to the intended authenticated personal audience, and respect private/block/challenge failures. No cookies, signed-in sessions, undocumented API calls, third-party resolvers, HLS/DRM bypass, proxy rotation or CAPTCHA solver is included. Existing platform/privacy/content-owner/live-acceptance and deployment gates remain applicable.

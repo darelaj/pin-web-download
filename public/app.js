@@ -70,3 +70,7 @@ form.addEventListener('submit', async event => {
   } catch (error) { if (error.name !== 'AbortError') setStatus(error.name === 'TimeoutError' ? messages.timeout : 'Connection interrupted. Check your connection and try again.', 'error'); }
   finally { submit.disabled = false; form.removeAttribute('aria-busy'); document.querySelector('#button-label').textContent = 'Find my video'; }
 });
+
+// Readiness comes last: native submission must stay disabled until the handler exists.
+setStatus('Ready when you are.');
+submit.disabled = false;

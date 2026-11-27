@@ -14,6 +14,36 @@ with sync_playwright() as p:
  page=context.new_page()
  errors=[]
  page.on('pageerror', lambda e: errors.append(str(e)))
+ # Hold module loading while exercising real mouse and implicit Enter submission.
+ startup=context.new_page()
+ pending=[]
+ startup.route('**/app.js', lambda route: pending.append(route))
+ requests=[]
+ startup.on('request', lambda request: requests.append(request))
+ startup.goto('http://127.0.0.1:3100/', wait_until='commit')
+ startup.locator('#pin-url').fill('https://www.pinterest.com/pin/1/')
+ startup.locator('#permission').check()
+ expect(startup.locator('#submit')).to_be_disabled()
+ assert 'enable JavaScript' in startup.locator('#status').inner_text()
+ initial_url=startup.url
+ box=startup.locator('#submit').bounding_box()
+ startup.mouse.click(box['x']+box['width']/2, box['y']+box['height']/2)
+ startup.locator('#pin-url').press('Enter')
+ startup.wait_for_timeout(200)
+ assert startup.url==initial_url
+ assert not [r for r in requests if '/api/' in r.url or '?url=' in r.url]
+ assert pending
+ pending[0].continue_()
+ expect(startup.locator('#submit')).to_be_enabled()
+ expect(startup.locator('#status')).to_contain_text('Ready when you are.')
+ startup.locator('#submit').click()
+ startup.locator('#result').wait_for(state='visible')
+ posts=[r for r in requests if '/api/metadata' in r.url]
+ assert len(posts)==1 and posts[0].method=='POST'
+ assert posts[0].headers['content-type']=='application/json'
+ assert posts[0].post_data_json=={'url':'https://www.pinterest.com/pin/1/','permission':True}
+ assert startup.url==initial_url
+ startup.close()
  results=[]
  for width,height in [(1440,1000),(768,1024),(390,844),(320,740)]:
   page.set_viewport_size({'width':width,'height':height})

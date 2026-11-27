@@ -6,7 +6,7 @@ Updated: 2026-11-27 (original official-mode QA: 2026-11-26). Workspace: isolated
 
 | Check | Actual result |
 |---|---|
-| `npm test` after final application changes | 48 tests passed; 0 failed, skipped or cancelled |
+| `npm test` after final application changes | 68 tests passed; 0 failed, skipped or cancelled |
 | Actual production `node src/index.js` | Child process served health and UI, default provider returned 503, logs contained no URL, SIGTERM exited with code 0 |
 | Official provider and standard/short link fixtures | Canonical ID, documented metadata mapping, bounded HEAD redirects, unavailable/non-video/HLS behavior passed |
 | Metadata → opaque preview/download HTTP flow | MP4 content type/disposition, exact response bytes and no exposed upstream media URL passed |
@@ -136,3 +136,57 @@ Browser official provider: 1440/768/390/320px passed
 Both browser fixtures now exercise the synthetic 308 pin.it → exact API resolver → 302 sent chain at short-link viewports. Their resolver fixture asserts HEAD with no auth/cookie and throws if sent is fetched. Poster bytes, actual preview playback and downloaded bytes, keyboard/fallback/error states, no overflow and zero browser page errors passed. Unit tests also exercise both production provider adapters with the same chain and assert only canonical Pin extraction. HTTP integration covers the full public-provider metadata/thumbnail/preview/download entry path.
 
 No new live Pinterest request or actual video fetch was made. The parent's supplied anonymous HEAD observations informed the fixture shape; this work does not claim live extraction/video compatibility. No local Docker runtime or fresh post-fix CI run was used, and publication/deployment remains with the parent. Prior CI evidence applies only to its recorded commits.
+
+
+## False-blocked / missing-record diagnostics fix — 2026-11-27
+
+Exact base: published develop `9ff58a1411288fc2fdbc2777f381250bcda5213c`. Sanitized fixtures model the parent's structural observations: a global `<style id="recaptcha">`, otherwise rendered Pin HTML, a `<video>` with track but no src/source, known framework runtime/state scripts without the requested record, and a separate page whose canonical/OG points at another Pin ID. No real Pin IDs, raw page captures, real tracking, live page/media requests or new remote endpoints were used.
+
+The parser no longer treats CSS IDs/text, generic JavaScript strings, head metadata or known hidden/inert content as visible challenge evidence. Active password/auth forms, challenge iframes/widgets and rendered challenge text remain rejected, as do applicable private/unverified/DRM signals. A recognized runtime `__PWS_DATA__` shell may coexist with `__PWS_INITIAL_PROPS__` state. Every recognized source is still parsed and bounded; duplicate names, malformed applicable state and conflicting requested-Pin records cannot be ignored in favor of a convenient valid record. Identical consistent records are permitted.
+
+Missing requested records and known source-less shells now return `page_video_unavailable`/422, with the user-facing explanation that the signed-out page did not provide usable video data; the app no longer infers that a visible Pin is not a video. Missing canonical proof/malformed state remains unsupported. Explicit conflicting canonical/OG URLs or requested record IDs remain `pin_identity_mismatch`/422, with wording that does not assume the user's link is bad and explains that another Pin ID cannot be followed even if the video looks the same. No alternate-ID request is made.
+
+```text
+npm test: 54 passed, 0 failed/skipped/cancelled
+Official-mode browser fixtures: 1440/768/390/320px passed
+Public-page browser fixtures: 1440/768/390/320px passed
+JS syntax and git diff --check: passed
+```
+
+New real HTTP metadata tests distinguish the observed source-less shell, genuine ID conflict, visible challenge and malformed applicable state. They assert zero media requests and page requests only to the original canonical Pin. New browser public-mode cases assert the honest signed-out-data/identity/unsupported messages through the form; the successful case includes inert recaptcha styling and runtime+state coexistence. Both provider suites retained exact poster/download bytes, actual fixture playback, keyboard/fallback/error flows, no overflow and zero page errors. Only synthetic HTML and the existing locally generated PNG/MP4 were used.
+
+This change improves diagnosis; it does not recover the missing MP4, prove live compatibility, bypass access controls, follow the other canonical ID, call undocumented media APIs or guess CDN URLs. No live download or fresh container/CI run was performed for this commit. Root review/publication and any new verify-only CI remain pending; no deployment ran.
+
+
+## Completed-Relay extraction and corroborated aliases — 2026-11-27
+
+Base: published develop `9025e5493dea650e239d0c3b35b097056713a357`, rechecked before work. The old local chain is retained as `local-before-relay`. Official API mode, disabled defaults, content-permission requirement, host/DNS/TLS/redirect/stream/image/ticket limits remain. The exact media allowlist now includes v1.pinimg.com and v.pinimg.com, with no wildcard.
+
+The new decoder reads only exact marked completed-request scripts and the full exact wrapper's two JSON arguments. It does not execute JS or issue a Relay/internal API call. Tests bind descriptor pinId/isAuth:false and optional anonymous flags to entityId, typed base64 Pin ID and seoUrl, then inspect only native StoryPinVideoBlock → videoDataV2.videoList720P values on that Pin. Sparse/null completions are not independent proof of media and cannot mask restrictions; usable duplicates are deduplicated by exact URL, while conflicting dimensions/identity fail. Only explicit dimensions are offered (the synthetic v720P fixture is actually 540×960). Generic sign-in prompts may coexist with validated anonymous data; explicit gated/auth/private/access-error/challenge/DRM signals still reject extraction.
+
+Alias acceptance requires agreeing canonical/OG, an exact requested-ID anonymous record, and one independent bounded canonical page with its own exact anonymous identity and self-canonical metadata. Only common validated MP4 URL/dimensions are retained. Tests reject wrong/absent proof, inconsistent OG, outside/lookalike origins, private/auth canonical data, different media, alias chains and attempts to use unrelated records. No third-page fallback exists.
+
+Actual checks:
+
+```text
+npm test: 68 passed, 0 failed/skipped/cancelled
+npm audit --omit=dev: 0 vulnerabilities
+JS syntax and git diff --check: passed
+Public provider browser: 1440/768/390/320px passed
+Official provider browser regression: 1440/768/390/320px passed
+```
+
+Real loopback HTTP tests cover Relay/self-bound alias metadata → opaque thumbnail → actual MP4 preview/download with exact bytes and no exposed CDN URLs. Restricted canonical proof returns a safe error with zero media probes/tickets. Public browser fixtures now use the marked Relay shape, generic sign-in UI, a locally generated 540×960 VP9 MP4, real playback, matching metadata dimensions, byte-exact poster/download, successful corroborated alias and rejected private canonical proof. Existing short-link, diagnostics, keyboard, fallback/errors, no-overflow and zero-page-error checks passed. Official fixtures retained the 320×180 generated clip. No real HTML/media is included in fixtures.
+
+### Actual approved sample attempts in this runtime
+
+The user-approved Pins were tested via POST /api/metadata with the production public provider and default guarded transport, not a fixture transport:
+
+| Public sample ID | Input host | Actual result |
+|---|---|---|
+| 1013943303628436870 | id.pinterest.com | 502 upstream_unavailable, 0 formats, 25 ms |
+| 965037026412629984 | www.pinterest.com | 502 upstream_unavailable, 0 formats, 5 ms |
+
+An earlier direct structural request using the same pinned transport failed with EAI_AGAIN at DNS before a response. No real preview/download request could be made after metadata failed. No transport, DNS, proxy, certificate or authentication safeguard was bypassed to make it work. No raw response HTML, Relay payload, media URL or personal content was saved. The parent's separately supplied clean no-cookie observations reported matching self-bound page records and MP4 HEAD responses (342753 and 306210 bytes respectively), but those are **not local test passes**. Actual end-to-end download compatibility of this implementation still requires a network-enabled reviewer run.
+
+No local Docker/OCI runtime is available, so no fresh container build/run or CI for these new commits was claimed. The existing verify-only workflow covers the full Node suite and both browser fixture providers after publication. Parent will review/publish/run CI; no push, merge, hosting change or deployment was performed here.

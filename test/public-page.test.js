@@ -22,19 +22,19 @@ test('known requested-Pin state slots map all direct MP4 variants and optional p
   assert.doesNotThrow(() => parsePublicPinHTML(publicHTML() + '<script>throw new Error("must not execute")</script>', '1'));
 });
 test('public parser rejects canonical/state identity mismatch, unrelated recommendations and ambiguous/inert/malformed state', () => {
-  for (const html of [publicHTML('2'), publicHTML().replace('"id":"1"', '"id":"2"'), publicHTML().replace('"pins":{"1":', '"pins":{"2":'), publicHTML().replace('rel="canonical"', 'rel="alternate"'), publicHTML().replace('</head>', '<link rel="canonical" href="https://pinterest.com/pin/1/"></head>'), publicHTML().replace('property="og:url" content="https://www.pinterest.com/pin/1/"', 'property="og:url" content="https://www.pinterest.com/pin/2/"')]) assert.throws(() => parsePublicPinHTML(html, '1'), /pin_identity_mismatch/);
+  for (const html of [publicHTML('2'), publicHTML().replace('"id":"1"', '"id":"2"'), publicHTML().replace('property="og:url" content="https://www.pinterest.com/pin/1/"', 'property="og:url" content="https://www.pinterest.com/pin/2/"')]) assert.throws(() => parsePublicPinHTML(html, '1'), /pin_identity_mismatch/);
   for (const html of [publicHTML() + '<script id="__PWS_DATA__" type="application/json">{}</script>', publicHTML().replace('application/json', 'text/javascript'), publicHTML().replace('{"props":', '{broken:'), publicHTML().replace('<script id=', '<template><script id=').replace('</script>', '</script></template>'), publicHTML().replace('<script id=', '<!-- <script id=').replace('</script>', '</script> -->'), publicHTML().replace('<script id=', '<noscript><script id=').replace('</script>', '</script></noscript>')]) assert.throws(() => parsePublicPinHTML(html, '1'), /page_metadata_unsupported/);
 });
 test('private, unknown, contradictory or malformed public flags fail closed', () => {
   for (const overrides of [{ is_private: true }, { is_private: undefined }, { is_private: 'false' }, { board: {} }, { board: { privacy: 'secret' } }, { board: { privacy: 'protected' } }, { board: { privacy: 'public', is_private: true } }, { board: { privacy: 'public', is_protected: true } }, { board: { privacy: 'public', is_ads_only: true } }, { is_removable: true }, { is_secret: true }]) assert.throws(() => parsePublicPinHTML(publicHTML('1', overrides), '1'), /public_access_unverified/);
 });
 test('login, CAPTCHA, bot blocks, DRM, unavailable media and third-party embeds are never bypassed', () => {
-  for (const block of ['<form action="/login/">', '<input type="password">', '<div id="captcha">', '<script src="https://challenges.cloudflare.com/turnstile/a.js"></script>', '<p>Verify you are human</p>', '<p>Log in to view this Pin</p>', '<div data-test-id="login-modal"></div>', '<p>Sign in to see this Pin</p>', '<h1>Robot check</h1>']) assert.throws(() => parsePublicPinHTML(publicHTML() + block, '1'), /page_blocked/);
+  for (const block of ['<form action="/login/">', '<input type="password">', '<div id="captcha">Verify you are human</div>', '<iframe src="https://challenges.cloudflare.com/turnstile/widget"></iframe>', '<p>Verify you are human</p>', '<p>Log in to view this Pin</p>', '<div data-test-id="login-modal"><input type="password"></div>', '<p>Sign in to see this Pin</p>', '<h1>Robot check</h1>']) assert.throws(() => parsePublicPinHTML(publicHTML() + block, '1'), /page_blocked/);
   for (const overrides of [{ requires_login: true }, { is_unavailable: true }, { is_playable: false }, { is_drm: true }, { is_encrypted: true }, { drm: {} }, { license_url: 'https://evil.test/' }, { embed: { src: 'https://youtube.com/watch?v=1' } }]) assert.throws(() => parsePublicPinHTML(publicHTML('1', overrides), '1'), /page_blocked/);
   assert.throws(() => parsePublicPinHTML(publicHTML('1', { videos: { video_list: { mp4: { url: 'https://v.pinimg.com/a.mp4', is_encrypted: true } } } }), '1'), /page_blocked/);
 });
 test('unsupported/no video/HLS/external media and bounded parser structures fail closed', () => {
-  assert.throws(() => parsePublicPinHTML(publicHTML('1', { videos: undefined }), '1'), /not_video/);
+  assert.throws(() => parsePublicPinHTML(publicHTML('1', { videos: undefined }), '1'), /page_video_unavailable/);
   assert.throws(() => parsePublicPinHTML(publicHTML('1', { videos: { video_list: { hls: { url: 'https://v.pinimg.com/a.m3u8' } } } }), '1'), /hls_unsupported/);
   assert.throws(() => parsePublicPinHTML(publicHTML('1', { videos: { video_list: { mp4: { url: 'https://evil.test/a.mp4' } } } }), '1'), /invalid_url/);
   assert.throws(() => parsePublicPinHTML(publicHTML('1', { videos: { video_list: { malformed: null } } }), '1'), /page_metadata_unsupported/);
@@ -52,7 +52,7 @@ test('anonymous public provider supports standard and short links using only bou
       assert.equal(options.headers.Accept, 'text/html'); assert.equal(options.hosts.has('api.pinterest.com'), false);
       return response(publicHTML(), 200, { 'set-cookie': 'ignored_fixture=1' });
     } });
-    assert.equal((await provider.getPin(input)).id, '1'); assert.equal(calls.at(-1), 'https://www.pinterest.com/pin/1/');
+    assert.equal((await provider.getPin(input)).id, '1'); assert.equal(calls.at(-1), input.includes('pin.it') ? 'https://www.pinterest.com/pin/1/' : 'https://pinterest.com/pin/1/');
     assert.equal(calls.length, input.includes('pin.it') ? 2 : 1);
   }
 });

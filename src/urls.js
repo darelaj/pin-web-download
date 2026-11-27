@@ -3,7 +3,7 @@ const roots = ['pinterest.com', 'pinterest.co.uk', 'pinterest.ca', 'pinterest.co
 const localeHosts = ['au', 'br', 'ca', 'cl', 'co', 'de', 'dk', 'es', 'fi', 'fr', 'hu', 'id', 'in', 'it', 'jp', 'kr', 'mx', 'nl', 'nz', 'ph', 'pl', 'pt', 'ro', 'ru', 'se', 'sk', 'tr', 'uk', 'vn', 'za'].map(locale => `${locale}.pinterest.com`);
 export const PIN_HOSTS = new Set([...roots.flatMap(h => [h, `www.${h}`, `m.${h}`]), ...localeHosts]);
 export const LINK_HOSTS = new Set([...PIN_HOSTS, 'pin.it']);
-export const MEDIA_HOSTS = new Set(['v.pinimg.com']);
+export const MEDIA_HOSTS = new Set(['v.pinimg.com', 'v1.pinimg.com']);
 export const IMAGE_HOSTS = new Set(['i.pinimg.com']);
 export function safeURL(value, hosts) {
   if (typeof value !== 'string' || value.length > 2048 || /[\s\\\u0000-\u001f\u007f]/u.test(value)) fail('invalid_url');

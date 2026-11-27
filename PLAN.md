@@ -51,3 +51,11 @@ Objective: a minimal responsive Pinterest video downloader with an authorized of
 
 - Published `develop` with a separate conventional commit for every verified increment. The original local history is retained in a bundle; the GitHub commits have different metadata but the respective file trees matched byte-for-byte. `main` contains only the initialization README; nothing was merged or deployed.
 - [GitHub Actions](https://github.com/darelaj/pin-web-download/actions/runs/45834060039) passed: 28 integration/security tests in the nonroot test image, production image build, container startup and HTTP health/assets/disabled-provider checks, and responsive Chromium fixture QA. Live authorized Pinterest acceptance and deployment approval remain open.
+
+
+## Public-page provider update (2026-11-27)
+- User superseded the API-only decision: add separate opt-in anonymous public HTML support for permitted personal use, preserve official API mode and never bypass restrictions.
+- Base: published develop 83a9adbe9710eb15e397ed16b6ee0031fb9f3cbc. Original local history retained under local-original-develop.
+- Narrow HTML parsing via parse5, known embedded state slots only, exact requested Pin/canonical identity, positive Pin and Board public flags, bounded direct native MP4 mapping. Unknown shapes/login/challenges/private/DRM/embeds fail closed. No undocumented API, executable page JavaScript, cookies or session storage.
+- Parser/security fixture suite and HTTP/browser entry flows are being verified. No permissioned live sample or automated-access authorization is available, so no live Pin/media fetch is planned.
+- Core provider verified: npm test 36 passed, 0 failures/skips. Synthetic standard/short URLs, known state slots, canonical/state identity, optional thumbnails, direct variants, opt-in/default/API isolation, login/CAPTCHA/blocks/privacy/DRM/embed rejection, HTTP redirect/MIME/size bounds covered. No live Pin/content requests. parse5 8.0.0 is pinned; original implementation references upstream shapes without copying extractor code.

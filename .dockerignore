@@ -1,0 +1,15 @@
+.git
+.github
+node_modules
+.env
+.env.*
+!.env.example
+artifacts
+test-results
+coverage
+*.log
+scripts/*
+!scripts/public-page-fixture.mjs
+PLAN.md
+QA.md
+AGENTS.md

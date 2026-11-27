@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#f6f4ee"><meta name="description" content="Preview and save videos from Pins you are authorized to download."><title>Pinfold — Pinterest video downloader</title><link rel="stylesheet" href="/app.css"><script type="module" src="/app.js"></script></head>
+<body>
+<header class="shell topbar"><a class="brand" href="/" aria-label="Pinfold home"><span class="mark" aria-hidden="true"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M18 6 6 18M6 6v12h12"/></svg></span> pinfold<span class="brand-dot">.</span></a><span class="top-note">A little less scrolling. A little more keeping.</span><a class="nav-link" href="#how-it-works">How it works <span aria-hidden="true"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M6 18 18 6M6 6h12v12"/></svg></span></a></header>
+<main class="shell">
+<section class="hero" aria-labelledby="hero-title">
+  <div class="intro"><p class="eyebrow"><span class="small-dot"></span> YOUR INSPIRATION, WITH YOU</p><h1 id="hero-title">Good ideas deserve<br>a <em>place to stay.</em></h1><p class="lede">Preview and save your Pinterest videos.<br>One link. The original quality. Yours to revisit.</p><div class="intro-foot"><span class="line"></span><span>No installs. No media stored.</span></div></div>
+  <div class="download-card">
+    <div class="card-heading"><span class="step">01 / SAVE A VIDEO</span><span class="link-icon" aria-hidden="true"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M6 18 18 6M6 6h12v12"/></svg></span></div>
+    <h2>Start with a Pin.</h2><p class="muted">Paste a Pinterest video link below.</p>
+    <form id="download-form">
+      <label for="pin-url">Pinterest link</label><div class="url-wrap"><span aria-hidden="true"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M6 18 18 6M6 6h12v12"/></svg></span><input id="pin-url" name="url" type="url" required maxlength="2048" placeholder="https://www.pinterest.com/pin/…" autocomplete="off" spellcheck="false" aria-describedby="link-help"></div>
+      <p id="link-help" class="helper">Pinterest Pin links and pin.it short links are supported.</p>
+      <label class="permission"><input id="permission" name="permission" type="checkbox" required><span>I own this video or have the creator’s permission to download it.</span></label>
+      <button id="submit" type="submit"><span id="button-label">Find my video</span><span id="button-arrow" aria-hidden="true">→</span></button>
+    </form>
+    <div id="status" class="status" role="status" aria-live="polite"><span class="small-dot"></span><span>Ready when you are.</span></div>
+    <p class="access-note">Downloads require an enabled, permitted provider. Creator permission and permission for automated Pinterest access are separate requirements.</p>
+  </div>
+</section>
+<section id="result" class="result" hidden aria-labelledby="result-title" tabindex="-1">
+  <div class="result-preview"><p id="thumbnail-status" class="helper" role="status">No thumbnail available. You can still load the video preview.</p><video id="preview" controls playsinline preload="none" aria-label="Video preview"></video><button id="load-preview" class="secondary" type="button">Load preview <span aria-hidden="true">▷</span></button><p id="preview-status" class="helper" role="status"></p></div>
+  <div class="result-details"><p class="eyebrow">02 / MAKE IT YOURS</p><h2 id="result-title"></h2><p id="result-description" class="muted"></p><label for="format">Available format</label><select id="format"></select><p class="helper">Only original MP4 files returned by the authorized provider. No upscaling.</p><a id="download" class="button" download>Download video <span aria-hidden="true">↓</span></a><p class="helper">Links expire in 5 minutes. Run a new search to refresh.</p></div>
+</section>
+<section id="how-it-works" class="how" aria-labelledby="how-title"><div class="section-heading"><p class="eyebrow">A SMALL TOOL. THREE SIMPLE STEPS.</p><h2 id="how-title">From found to saved.</h2></div><div class="steps"><article><span class="number">01</span><h3>Copy the link</h3><p>Open your video Pin on Pinterest and copy its link from the share menu.</p></article><article><span class="number">02</span><h3>Take a look</h3><p>Paste the link here, confirm your permission, and preview the available video.</p></article><article><span class="number">03</span><h3>Keep the inspiration</h3><p>Choose an available original format and save the video to your device.</p></article></div></section>
+<aside class="respect"><span class="respect-icon" aria-hidden="true"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M12 1v22M1 12h22M4.2 4.2l15.6 15.6M4.2 19.8 19.8 4.2"/></svg></span><div><h2>Good inspiration starts with respect.</h2><p>Save only what you’re allowed to. Keep the creator’s credit, respect their work, and follow Pinterest’s rules.</p></div><span class="respect-end" aria-hidden="true"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M6 18 18 6M6 6h12v12"/></svg></span></aside>
+</main>
+<footer class="shell footer"><span>pinfold. <span class="muted">A home for your inspiration.</span></span><span>Independent tool. Not affiliated with Pinterest.</span></footer>
+</body></html>

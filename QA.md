@@ -6,7 +6,7 @@ Updated: 2026-11-27 (original official-mode QA: 2026-11-26). Workspace: isolated
 
 | Check | Actual result |
 |---|---|
-| `npm test` after final application changes | 39 tests passed; 0 failed, skipped or cancelled |
+| `npm test` after final application changes | 48 tests passed; 0 failed, skipped or cancelled |
 | Actual production `node src/index.js` | Child process served health and UI, default provider returned 503, logs contained no URL, SIGTERM exited with code 0 |
 | Official provider and standard/short link fixtures | Canonical ID, documented metadata mapping, bounded HEAD redirects, unavailable/non-video/HLS behavior passed |
 | Metadata → opaque preview/download HTTP flow | MP4 content type/disposition, exact response bytes and no exposed upstream media URL passed |
@@ -114,3 +114,25 @@ Screenshots now live under ignored `artifacts/public-page/` and `artifacts/offic
 - **Other browsers/codecs:** Chromium fixture playback is not real Pinterest H264, Safari or iOS acceptance.
 
 Operators must review permission for automated access independently of creator permission, select the provider explicitly, keep the instance limited to the intended authenticated personal audience, and respect private/block/challenge failures. No cookies, signed-in sessions, undocumented API calls, third-party resolvers, HLS/DRM bypass, proxy rotation or CAPTCHA solver is included. Existing platform/privacy/content-owner/live-acceptance and deployment gates remain applicable.
+
+
+## Short-link regression fix — 2026-11-27
+
+Worked from exact published develop base `740129935137ca7996c6566c55d2edba1b389d7c`. The reported redirect shape was reproduced with synthetic short codes/Pin IDs and a synthetic `fixture_tracking` query, never the real tracking payload. The original focused regression run was 1 passed / 6 failed; the resolver hop and sent input failed with `invalid_url`.
+
+The shared resolver now accepts only `https://api.pinterest.com/url_shortener/<original-code>/redirect/` exactly as a redirect from that original pin.it code, with anonymous HEAD requests and a separate exact host allowlist. It does not widen external input, page, media or arbitrary API allowlists. Redirects to changed codes, arbitrary API paths, lookalikes, private hosts, wrong protocols/ports/userinfo and resolver query/fragment/path variants are rejected before fetching. Existing DNS checking/IP pinning and four-hop bounds remain in place.
+
+The exact terminal `/pin/<digits>/sent/` route on existing allowed Pinterest hosts yields only the Pin ID and canonical URL, with query discarded. It is never fetched by short resolution. Later public page redirects also canonicalize the validated Pin URL before fetching, so the newly accepted sent route cannot accidentally become a page fetch. Official API extraction uses the ID as before. Friendly `short_link_unavailable`/422 now covers unsafe/broken upstream redirects; invalid initial input remains `invalid_url`/400. The distinction is tested through POST `/api/metadata`.
+
+Final results:
+
+```text
+npm test: 48 tests passed, 0 failed/skipped/cancelled
+JS syntax and git diff --check: passed
+Browser public-page provider: 1440/768/390/320px passed
+Browser official provider: 1440/768/390/320px passed
+```
+
+Both browser fixtures now exercise the synthetic 308 pin.it → exact API resolver → 302 sent chain at short-link viewports. Their resolver fixture asserts HEAD with no auth/cookie and throws if sent is fetched. Poster bytes, actual preview playback and downloaded bytes, keyboard/fallback/error states, no overflow and zero browser page errors passed. Unit tests also exercise both production provider adapters with the same chain and assert only canonical Pin extraction. HTTP integration covers the full public-provider metadata/thumbnail/preview/download entry path.
+
+No new live Pinterest request or actual video fetch was made. The parent's supplied anonymous HEAD observations informed the fixture shape; this work does not claim live extraction/video compatibility. No local Docker runtime or fresh post-fix CI run was used, and publication/deployment remains with the parent. Prior CI evidence applies only to its recorded commits.
